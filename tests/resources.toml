@@ -1,0 +1,41 @@
+capacity = 5
+
+[id]
+time = 1
+size = 1
+
+[x]
+time = 1
+size = 1
+
+[y]
+time = 1
+size = 1
+
+[z]
+time = 1
+size = 1
+
+[h]
+time = 2
+size = 2
+
+[rx]
+time = 1
+size = 1
+
+[ry]
+time = 1
+size = 1
+
+[rz]
+time = 1
+size = 1
+
+[cx]
+time = 1
+size = 2
+
+[cz]
+time = 1
+size = 2
