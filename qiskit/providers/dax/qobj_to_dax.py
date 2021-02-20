@@ -47,8 +47,48 @@ def _serialize_timeline(ops, depends, level = 0):
             level -= 1
 
 
-def _experiment_to_seq(experiment, gate_resources):
+def _schedule_instruction(time, size, inst, instr_count, resource_log, experiment, lookahead, rem, depends):        
+    # Actually execute instruction
+    if inst.name == 'id':
+        line = 'self.i({})'.format(inst.qubits[0])
+    elif inst.name == 'x':
+        line = 'self.x({})'.format(inst.qubits[0])
+    elif inst.name == 'y':
+        line = 'self.y({})'.format(inst.qubits[0])
+    elif inst.name == 'z':
+        line = 'self.z({})'.format(inst.qubits[0])
+    elif inst.name == 'h':
+        line = 'self.h({})'.format(inst.qubits[0])
+    elif inst.name == 'rx':
+        line = 'self.rx({}, {})'.format(inst.params[0], inst.qubits[0])
+        #print(inst.params[0])
+    elif inst.name == 'ry':
+        line = 'self.ry({}, {})'.format(inst.params[0], inst.qubits[0])
+    elif inst.name == 'rz':
+        line = 'self.rz({}, {})'.format(inst.params[0], inst.qubits[0])
+    elif inst.name == 'cx':
+        line = 'self.cnot({}, {})'.format(inst.qubits[0], inst.qubits[1])
+    elif inst.name == 'cz':
+        line = 'self.cz({}, {})'.format(inst.qubits[0], inst.qubits[1])            
+    else:
+        experiment.instructions.pop(lookahead)
+        return instr_count
+        #raise Exception("Operation '%s' outside of basis id, x, y, z, h, rx, ry, rz, cx, cz" %
+        #                inst.name)            
 
+    resource_log.append((time, size, inst.qubits, line, instr_count))
+    experiment.instructions.pop(lookahead)
+
+    if len(rem) == 0:
+        depends[instr_count] = (line, {})
+    else:
+        _add_depend(depends, rem[0][4], instr_count, line)
+    instr_count += 1
+    print(instr_count)
+    return instr_count
+
+
+def _experiment_to_seq(experiment, gate_resources):
     depends = {}
     instr_count = 0
     resource_log = []
@@ -99,50 +139,19 @@ def _experiment_to_seq(experiment, gate_resources):
                 lookahead_bits += inst.qubits
                 continue
 
-            # Actually execute instruction
-            if inst.name == 'id':
-                line = 'self.i({})'.format(inst.qubits[0])
-            elif inst.name == 'x':
-                line = 'self.x({})'.format(inst.qubits[0])
-            elif inst.name == 'y':
-                line = 'self.y({})'.format(inst.qubits[0])
-            elif inst.name == 'z':
-                line = 'self.z({})'.format(inst.qubits[0])
-            elif inst.name == 'h':
-                line = 'self.h({})'.format(inst.qubits[0])
-            elif inst.name == 'rx':
-                line = 'self.rx({}, {})'.format(inst.params[0], inst.qubits[0])
-            elif inst.name == 'ry':
-                line = 'self.ry({}, {})'.format(inst.params[0], inst.qubits[0])
-            elif inst.name == 'rz':
-                line = 'self.rz({}, {})'.format(inst.params[0], inst.qubits[0])
-            elif inst.name == 'cx':
-                line = 'self.cnot({}, {})'.format(inst.qubits[0], inst.qubits[1])
-            elif inst.name == 'cz':
-                line = 'self.cz({}, {})'.format(inst.qubits[0], inst.qubits[1])
-            elif inst.name == 'measure':
-                meas += 1
-                experiment.instructions.pop(lookahead)
-                continue
-            elif inst.name == 'barrier':
-                experiment.instructions.pop(lookahead)
-                continue
-            else:
-                raise Exception("Operation '%s' outside of basis id, x, y, z, h, rx, ry, rz, cx, cz" %
-                                inst.name)
+#            if inst.name == 'measure':
+#                meas += 1
+#                experiment.instructions.pop(lookahead)
+#                continue
+#            elif inst.name == 'barrier':
+#                experiment.instructions.pop(lookahead)
+#                continue
 
-            resource_log.append((time, size, inst.qubits, line, instr_count))
-            experiment.instructions.pop(lookahead)
-
-            if len(rem) == 0:
-                depends[instr_count] = (line, {})
-            else:
-                _add_depend(depends, rem[0][4], instr_count, line)
-            instr_count += 1
-    
-    if not meas:
-        raise ValueError('Circuit must have at least one measurements.')
-
+            #
+            #"self.rx({})".format(",".join(getattr(inst, "params", [])) + ",".join(inst.qubits))                             
+            instr_count = _schedule_instruction(time, size, inst, instr_count, resource_log, experiment, lookahead, rem, depends)
+    #if not meas:
+    #    raise ValueError('Circuit must have at least one measurements.')
     _serialize_timeline(ops, depends)
 
     return ops
