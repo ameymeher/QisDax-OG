@@ -47,34 +47,11 @@ def _serialize_timeline(ops, depends, level = 0):
             level -= 1
 
 
-def _schedule_instruction(time, size, inst, instr_count, resource_log, experiment, lookahead, rem, depends):        
-    # Actually execute instruction
-    if inst.name == 'id':
-        line = 'self.i({})'.format(inst.qubits[0])
-    elif inst.name == 'x':
-        line = 'self.x({})'.format(inst.qubits[0])
-    elif inst.name == 'y':
-        line = 'self.y({})'.format(inst.qubits[0])
-    elif inst.name == 'z':
-        line = 'self.z({})'.format(inst.qubits[0])
-    elif inst.name == 'h':
-        line = 'self.h({})'.format(inst.qubits[0])
-    elif inst.name == 'rx':
-        line = 'self.rx({}, {})'.format(inst.params[0], inst.qubits[0])
-        #print(inst.params[0])
-    elif inst.name == 'ry':
-        line = 'self.ry({}, {})'.format(inst.params[0], inst.qubits[0])
-    elif inst.name == 'rz':
-        line = 'self.rz({}, {})'.format(inst.params[0], inst.qubits[0])
-    elif inst.name == 'cx':
-        line = 'self.cnot({}, {})'.format(inst.qubits[0], inst.qubits[1])
-    elif inst.name == 'cz':
-        line = 'self.cz({}, {})'.format(inst.qubits[0], inst.qubits[1])            
-    else:
-        experiment.instructions.pop(lookahead)
-        return instr_count
-        #raise Exception("Operation '%s' outside of basis id, x, y, z, h, rx, ry, rz, cx, cz" %
-        #                inst.name)            
+def _schedule_instruction(time, size, inst, instr_count, resource_log, experiment, lookahead, rem, depends, decoding_dict):        
+    try:
+        line = decoding_dict[inst.name](inst)
+    except:
+        raise Exception("Operation '%s' outside of basis id, x, y, z, h, rx, ry, rz, cx, cz" % inst.name)
 
     resource_log.append((time, size, inst.qubits, line, instr_count))
     experiment.instructions.pop(lookahead)
@@ -92,9 +69,26 @@ def _experiment_to_seq(experiment, gate_resources):
     depends = {}
     instr_count = 0
     resource_log = []
-
     meas = 0
     ops = []
+
+    def std_replace(val):
+        def test(inst):        
+            return "self.{}({})".format(val, ",".join(getattr(inst, "params", [])) + ",".join(map(str, inst.qubits)))      
+        return test
+
+    decoding_dict = {        
+        "id": std_replace("id"), 
+        "x": std_replace("x"), 
+        "y": std_replace("y"), 
+        "z": std_replace("z"), 
+        "h": std_replace("h"), 
+        "rx": std_replace("rx"), 
+        "ry": std_replace("ry"), 
+        "rz": std_replace("rz"),
+        "cx": std_replace("cx"),
+        "cz": std_replace("cz")
+    }    
 
     while True:
 
@@ -139,19 +133,17 @@ def _experiment_to_seq(experiment, gate_resources):
                 lookahead_bits += inst.qubits
                 continue
 
-#            if inst.name == 'measure':
-#                meas += 1
-#                experiment.instructions.pop(lookahead)
-#                continue
-#            elif inst.name == 'barrier':
-#                experiment.instructions.pop(lookahead)
-#                continue
-
-            #
-            #"self.rx({})".format(",".join(getattr(inst, "params", [])) + ",".join(inst.qubits))                             
-            instr_count = _schedule_instruction(time, size, inst, instr_count, resource_log, experiment, lookahead, rem, depends)
-    #if not meas:
-    #    raise ValueError('Circuit must have at least one measurements.')
+            if inst.name == 'measure':
+                meas += 1
+                experiment.instructions.pop(lookahead)
+                continue
+            elif inst.name == 'barrier':
+                experiment.instructions.pop(lookahead)
+                continue
+                                                 
+            instr_count = _schedule_instruction(time, size, inst, instr_count, resource_log, experiment, lookahead, rem, depends, decoding_dict)
+    if not meas:
+        raise ValueError('Circuit must have at least one measurements.')
     _serialize_timeline(ops, depends)
 
     return ops
