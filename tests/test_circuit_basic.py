@@ -10,7 +10,7 @@ c= ClassicalRegister(2)
 qc = QuantumCircuit(q, c)
 
 qc.h(q[0])
-qc.h(q[1])
+qc.cx(q[0], q[1])
 qc.y(q[1])
 
 

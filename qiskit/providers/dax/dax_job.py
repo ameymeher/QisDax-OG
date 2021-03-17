@@ -22,6 +22,7 @@ from qiskit.providers import BaseJob
 from qiskit.providers import JobError
 from qiskit.providers import JobTimeoutError
 from qiskit.result import Result
+from jinja2 import Environment, FileSystemLoader
 
 
 class DAXJob(BaseJob):
@@ -54,8 +55,20 @@ class DAXJob(BaseJob):
 
     def print_dax(self):
         print("--- DAX Code ---\n")
-        for l in self.dax_code:
-            print(l)
+
+        file_loader = FileSystemLoader(searchpath="../qiskit/providers/dax")        
+        env = Environment(loader=file_loader)
+        template = env.get_template('dax_jinja.j2')
+
+        num_qubits = self.qobj.to_dict()["config"]["n_qubits"]
+        # print("\n\nqobj ", self.qobj.to_dict())#["Config"]["n_qubits"])
+
+        dax_program = template.render(shots=10, instructions_list=self.dax_code, qubits=num_qubits)
+
+        print(dax_program)
+
+        #for l in self.dax_code:
+        #    print(l)
 
     def cancel(self):
         pass

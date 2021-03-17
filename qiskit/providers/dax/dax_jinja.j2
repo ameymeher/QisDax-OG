@@ -1,0 +1,28 @@
+from dax.experiment import *
+class ConstructedExperiment(EnvExperiment):
+
+  def build(self):
+    self.setattr_device('core')
+    self.num_iterations = {{shots}}}
+
+  def run():
+    self._run()
+    return self.result_list
+
+  @kernel
+  def _run(self):
+    for _ range(self.num_iterations):
+      r = self._qiskit_kernel()
+      self._collect_data(r)
+
+  @kernel
+  def _qiskit_kernel():
+    self.load_ions({{qubits}})
+    self.initialize_all()
+    {% for inst in instructions_list -%}
+    {{inst}} 
+    {% endfor %}
+    self.detect_all()
+    r = self.measure_all()
+    return r
+
