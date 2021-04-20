@@ -16,15 +16,35 @@ import json
 
 from numpy import pi
 
-def _add_depend(dep, src, dest, line):
-    if src in dep:
-        dep[src][1][dest] = (line, {})
+# global_var = 0
+
+#[h0, h1n ==]
+# [h0, h1 ]
+# x1
+# [[h0, x1], h1 ]
+#{id:(line, {id3:(line3, {}), id4:(line4, {})}), id2:(line2, {}), id5:..}
+# y0
+# x2
+
+# [[h0, [x1, y0]], h1 ]
+# [[h0, x1], [h1, y0] ]
+
+    #_add_depend(depends, rem[0][4], instr_count, line)
+    # depends   == array of quantum gates shaped after scheduling
+    # src       == rem[0][4] == id for the 0th element in the remove array
+    # instr_count == id for the element we are adding
+    # line      == dax code string
+def _add_depend(depends, src, dest, line):
+    if src in depends:
+        depends[src][1][dest] = (line, {})
         return 1
-    for k, v in dep.items():
+    for k, v in depends.items():
         if _add_depend(v[1], src, dest, line):
             return 1
     return 0
+   
 
+#{id:(line, {id3:(line3, {}), id4:(line4, {})}), id2:(line2, {}), id5:..}
 def _serialize_timeline(ops, depends, level = 0):
     if len(depends) > 1:
         ops.append(level*"\t" + "with parallel:")
@@ -46,85 +66,127 @@ def _serialize_timeline(ops, depends, level = 0):
         if len(depends) > 1 and len(temp) > 0:
             level -= 1
 
-def _schedule_experiment(instr_count, resource_log, experiment, lookahead, rem, depends, decoding_dict, gate_resources, lookahead_bits):
-    
-    while True:        
-        if lookahead >= len(experiment.instructions):            
+
+
+def _schedule_experiment(instr_count, active_gates, lookahead, rem, depends, decoding_dict, gate_resources, lookahead_qbits_list, instruction_queue):
+    # global global_var
+    while True:
+
+        if lookahead >= len(instruction_queue): 
             break
+           
+        inst = instruction_queue[lookahead]
+                  
+        op_qbits = inst["qubits"]
+        gate_name = inst["name"]
+        line = inst["line"]
 
-        inst = experiment.instructions[lookahead]   
+        print("schedule_instruction", op_qbits, gate_name, line)
 
-
-        if inst.name == 'measure':            
-            experiment.instructions.pop(lookahead)
-            continue
-        elif inst.name == 'barrier':
-            experiment.instructions.pop(lookahead)
-            continue 
-
-        try:
-            lineList = decoding_dict[inst.name](inst)            
-        except:        
-            raise Exception("Operation '%s' outside of basis id, x, y, z, h, rx, ry, rz, cx, cz" % inst.name)
+        instr_count, lookahead, lookahead_qbits_list = _schedule_instruction(op_qbits, instr_count, active_gates, instruction_queue,
+             lookahead, rem, depends, decoding_dict, gate_resources, lookahead_qbits_list, line, gate_name)                        
+    return instr_count, lookahead, lookahead_qbits_list, instruction_queue
 
 
-        for line in lineList:            
-            instr_count, lookahead, lookahead_bits = _schedule_instruction(inst, instr_count, resource_log, experiment,
-             lookahead, rem, depends, decoding_dict, gate_resources, lookahead_bits, line)                        
-    return instr_count, lookahead, lookahead_bits
-
-    
-def _schedule_instruction(inst, instr_count, resource_log, experiment, lookahead, rem, depends, decoding_dict, gate_resources, lookahead_bits, line):                        
+def _schedule_instruction(op_qbits, instr_count, active_gates, instruction_queue, lookahead, rem, depends,
+ decoding_dict, gate_resources, lookahead_qbits_list, line, gate_name):                        
     # Get resource information
     if gate_resources is not None:
-        resource = gate_resources.get(inst.name, {})
+        resource = gate_resources.get(gate_name, {})
         time = resource.get("time", 1)
-        size = resource.get("size", 1)
-        cap = gate_resources.get("capacity", 3)
+        mirrors = resource.get("mirrors", 1)
+        lasers = resource.get("lasers", 1)
+        size = {"mirrors":mirrors, "lasers":lasers}
+        total_mirrors = gate_resources.get("total_mirrors", 3)
+        total_lasers = gate_resources.get("total_lasers", 3)
+        cap = {"mirrors":total_mirrors, "lasers":total_lasers}
+
     else:
         raise ValueError("Please specify a resource file")
     
     # Check if we have the resources now
-    depend_check = len(set(inst.qubits).intersection(
-        set([t for x in resource_log for t in x[2]]))) > 0
-    resource_check = cap - sum([x[1] for x in resource_log]) < size
-    lookahead_check = len(set(inst.qubits).intersection(set(lookahead_bits))) > 0
+    depend_check = len(set(op_qbits).intersection(
+        set([t for x in active_gates for t in x[2]]))) > 0
+
+    #catches instructions that are too 'large'
+    # resource_check = cap - sum([x[1] for x in active_gates]) < size
+
+    resource_check = any([ ((cap[res] - sum([x[1][res] for x in active_gates])) < size[res]) for res in cap.keys() ])
+
+    
+    # catches the instructions that depend on an instruction that was skipped
+    lookahead_check = len(set(op_qbits).intersection(set(lookahead_qbits_list))) > 0 
 
     if depend_check or resource_check or lookahead_check:
         #print(depend_check,resource_check,lookahead_check)
         lookahead += 1
-        lookahead_bits += inst.qubits        
-        return instr_count, lookahead, lookahead_bits
+        lookahead_qbits_list += op_qbits        
+        return instr_count, lookahead, lookahead_qbits_list
     
-    resource_log.append((time, size, inst.qubits, line, instr_count))
-    experiment.instructions.pop(lookahead)
+    print("appending to active gates", time, size, op_qbits, line, instr_count)
+    active_gates.append((time, size, op_qbits, line, instr_count))
+    # experiment.instructions.pop(lookahead)
+    instruction_queue.pop(lookahead)
+    
     if len(rem) == 0:
         depends[instr_count] = (line, {})
     else:
         _add_depend(depends, rem[0][4], instr_count, line)
     instr_count += 1
    
-    return instr_count, lookahead, lookahead_bits
+    return instr_count, lookahead, lookahead_qbits_list
 
 
 def _experiment_to_seq(experiment, gate_resources):
     depends = {}
     instr_count = 0
-    resource_log = []
+    active_gates = []
     meas = 0
     ops = []
+    instruction_queue = []
 
-    def std_replace(val):
+    def std_replace(inst_name):
         def test(inst):        
-            return ["self.{}({})".format(val, ",".join(getattr(inst, "params", [])) + ",".join(map(str, inst.qubits)))]
+            return [{"line": "self.q.{}({})".format(inst_name, ",".join(getattr(inst, "params", [])) + ",".join(map(str, inst.qubits))),
+                     "qubits": inst.qubits,
+                     "name": inst.name}]
         return test
 
-    def custom_cx(val):
+    def custom_cx():
         def decompose(inst):
-            return ["self.rx(self.pi/2,{})".format(inst.qubits[0]),
-            "self.xx({},{})".format(inst.qubits[0], inst.qubits[1])
+            return [
+                {
+                    "line": "self.ry(self.pi/2,{})".format(inst.qubits[0]),
+                    "qubits": [inst.qubits[0]],
+                    "name": "ry"
+                },
+                {
+                    "line": "self.xx(self.pi/4,{},{})".format(inst.qubits[0], inst.qubits[1]),
+                    "qubits": inst.qubits,
+                    "name": "xx"
+                },
+                {
+                    "line": "self.ry(self.pi/2,{})".format(inst.qubits[0]),
+                    "qubits": [inst.qubits[0]],
+                    "name": "ry"
+                },                
+                {
+                    "line": "self.rx(self.pi/2,{})".format(inst.qubits[0]),
+                    "qubits": [inst.qubits[1]],
+                    "name": "rx"
+                },
+                                {
+                    "line": "self.rz(self.pi/2,{})".format(inst.qubits[0]),
+                    "qubits": [inst.qubits[0]],
+                    "name": "rz"
+                },
             ]
         return decompose
+
+    def barrier_func():
+        def noop(inst):
+            return [{"line": "", "qubits": inst.qubits, "name": inst.name}]
+        return noop
 
     decoding_dict = {        
         "id": std_replace("id"), 
@@ -135,38 +197,54 @@ def _experiment_to_seq(experiment, gate_resources):
         "rx": std_replace("rx"), 
         "ry": std_replace("ry"), 
         "rz": std_replace("rz"),
-        "cx": custom_cx("cx"),
+        "barrier": barrier_func(),
+        "cx": custom_cx(),
         #todo: "cz": std_decompose("cz")
     }    
+    
+    # remove/rem -> remove_
+    # lookahead ->
+    # lookahead qbits list -> 
+    while len(experiment.instructions):      
+        inst = experiment.instructions.pop(0)  
+        if inst.name == 'measure':                        
+            continue
+
+        try:   
+            instruction_queue += decoding_dict[inst.name](inst)                                     
+        except:        
+            raise Exception("Operation '%s' outside of basis id, x, y, z, h, rx, ry, rz, cx, cz, barrier" % inst.name)
+        
 
     while True:
 
-        if len(experiment.instructions) == 0 and len(resource_log) == 0:
+        if len(active_gates) == 0 and len(instruction_queue) == 0:
             break
 
         # Clear out unused things
-        rem = []
-        for i, x in enumerate(resource_log):
-            resource_log[i] = (x[0] - 1, *x[1:5])
+        # removes the gates that just finished execution from active_gates
+        remove = []
+        for i, x in enumerate(active_gates):            
+            active_gates[i] = (x[0] - 1, *x[1:5])
             if x[0] == 0:
-                rem.append(resource_log[i])
-        for x in rem:
-            resource_log.remove(x)
+                remove.append(active_gates[i])
+        for x in remove:
+            active_gates.remove(x)
             
         lookahead = 0
-        lookahead_bits = []
+        lookahead_qbits_list = []
         
-        instr_count, lookahead, lookahead_bits = _schedule_experiment(instr_count, resource_log, experiment, lookahead, rem, depends, decoding_dict, gate_resources, lookahead_bits)
 
-    #if not meas:
-    #    raise ValueError('Circuit must have at least one measurements.')
+        instr_count, lookahead, lookahead_qbits_list, instruction_queue = _schedule_experiment(instr_count, active_gates, lookahead,
+         remove, depends, decoding_dict, gate_resources, lookahead_qbits_list, instruction_queue)
+
     _serialize_timeline(ops, depends)
 
     return ops
 
 
 def qobj_to_dax(qobj, shots, gate_resources):
-    """Return a list of DAX code strings for each experiment in a qobj
+    """Return a list of DAX code strings in a qobj
 
     If we were actually working with the hardware we would be executing these code strings
     to build a real kernel in DAX.
@@ -174,56 +252,6 @@ def qobj_to_dax(qobj, shots, gate_resources):
     """
 
     if len(qobj.experiments) > 1:
-        raise Exception
+        raise Exception    
 
-    #out = []
-
-
-
-    # Setup class
-    # out.append("from dax.experiment import *")
-    # out.append("class ConstructedExperiment(EnvExperiment):")
-
-    # Setup Class' build method
-    # out.append("\tdef build(self):")
-    # out.append("\t\tself.setattr_device('core')")
-    # out.append(f"\t\tself.num_iterations = {shots}") # (x = number of shots)
-    
-    # Setup Class' run method
-    # out.append("\tdef run():")
-    # out.append("\t\tself._run()")
-    # out.append("\t\treturn self.result_list")
-
-    ## Setup kernel
-    # out.append("\t@kernel")
-
-    # Setup kernel _run() method (never changes)
-    # out.append("\tdef _run(self):")
-    # out.append("\t\tfor _ range(self.num_iterations):")
-    # out.append("\t\t\tr = self._qiskit_kernel()")
-    # out.append("\t\t\tself._collect_data(r)")
-
-    # Defining _qiskit_kernel() method (this is the QC program)
-    # out.append("\tkernel")
-    # out.append("\tdef _qiskit_kernel():")
-    # for experiment in qobj.experiments:
-        # Init ions
-        # out.append("\t\tself.load_ions({})".format(experiment.config.n_qubits))
-        # out.append("\t\tself.initialize_all()")
-        
-        # Add lines
-        #out += ["\t\t{}".format(l) 
-        #    for l in _experiment_to_seq(experiment, gate_resources)]
-    
-    # print("test!\n\n")
-
-    # experiment.config.n_qubits -> self.n_qubits
-    out = _experiment_to_seq(qobj.experiments[0], gate_resources)
-
-    # print("!test\n\n")
-    # Add measurement
-    # out.append("\t\tself.detect_all()")
-    # out.append("\t\tr = self.measure_all()")
-    # out.append("\t\treturn r")
-    
-    return out
+    return _experiment_to_seq(qobj.experiments[0], gate_resources)

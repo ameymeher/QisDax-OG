@@ -58,7 +58,7 @@ class DAXJob(BaseJob):
 
         file_loader = FileSystemLoader(searchpath="../qiskit/providers/dax")        
         env = Environment(loader=file_loader)
-        template = env.get_template('dax_jinja.j2')
+        template = env.get_template('dax_jinja_2.j2')
 
         num_qubits = self.qobj.to_dict()["config"]["n_qubits"]
         # print("\n\nqobj ", self.qobj.to_dict())#["Config"]["n_qubits"])

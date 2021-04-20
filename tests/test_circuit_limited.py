@@ -11,12 +11,19 @@ q= QuantumRegister(num_bits)
 c= ClassicalRegister(num_bits)
 qc = QuantumCircuit(q, c)
 
-qc.h(q)
+qc.h(0)
+qc.h(1)
+qc.x(1)
+qc.y(0)
+# qc.y(0)
+qc.barrier()
+qc.y(2)
+print(qc.draw(output='text'))
+qc.measure(list(range(3)), list(range(3)))
 
-qc.measure(list(range(num_bits)), list(range(num_bits)))
+# print(qc.qasm())
 
-backend.load_config("resources.toml")
-#print(qc.qasm())
+backend.load_config("new_resources.toml")
 dax_result = execute(qc, backend, shots=1000)
 dax_result.print_dax()
 

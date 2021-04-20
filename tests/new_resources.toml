@@ -1,0 +1,57 @@
+total_lasers = 5
+total_mirrors = 5
+
+[id]
+time = 1
+lasers = 1
+mirrors = 1
+
+[x]
+time = 1
+lasers = 4
+mirrors = 1
+
+[y]
+time = 1
+lasers = 1
+mirrors = 4
+
+[z]
+time = 1
+lasers = 1
+mirrors = 1
+
+[h]
+time = 2
+lasers = 2
+mirrors = 2
+
+[rx]
+time = 1
+lasers = 1
+mirrors = 1
+
+[ry]
+time = 1
+lasers = 1
+mirrors = 1
+
+[rz]
+time = 1
+lasers = 1
+mirrors = 1
+
+[cx]
+time = 1
+lasers = 2
+mirrors = 2
+
+[xx]
+time = 1
+lasers = 2
+mirrors = 2
+
+[cz]
+time = 1
+lasers = 2
+mirrors = 2

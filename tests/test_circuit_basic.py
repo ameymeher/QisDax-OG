@@ -16,6 +16,8 @@ qc.y(q[1])
 
 qc.measure_all()
 
+print(qc.qasm())
+
 backend.load_config("resources.toml")
 dax_result = execute(qc, backend, shots=10)
 dax_result.print_dax()
