@@ -1,49 +1,57 @@
-capacity = 5
+total_lasers = 5
+total_mirrors = 5
 
 [id]
 time = 1
-size = 1
+lasers = 1
+mirrors = 1
 
 [x]
-time = 5
-size = 1
+time = 1
+lasers = 1
+mirrors = 1
 
 [y]
 time = 1
-size = 1
+lasers = 1
+mirrors = 1
 
 [z]
 time = 1
-size = 1
+lasers = 1
+mirrors = 1
 
 [h]
 time = 2
-size = 2
+lasers = 2
+mirrors = 2
 
 [rx]
 time = 1
-size = 1
+lasers = 1
+mirrors = 1
 
 [ry]
 time = 1
-size = 1
+lasers = 1
+mirrors = 1
 
 [rz]
 time = 1
-size = 1
+lasers = 1
+mirrors = 1
 
 [cx]
 time = 1
-size = 2
+lasers = 2
+mirrors = 2
 
 [xx]
 time = 1
-size = 2
+lasers = 2
+mirrors = 2
 
 [cz]
 time = 1
-size = 2
-
-[barrier]
-time = 0
-size = 0
+lasers = 2
+mirrors = 2

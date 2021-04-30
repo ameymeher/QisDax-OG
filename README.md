@@ -1,6 +1,5 @@
-# Ion Trap Compiler Project
-Quantum Computing Project M1 for NCSU's ECE 592. *Compiler for Duke Ion Trap*.
-"from a high-level language (Qiskit, Cirq, Q#, etc) to ion trap gate-level direct access"
+# Qisdax, qiskit to DAX Compiler
+This document describes the project qisdax, whose goal is to compile quantum circuit code written in the high-level language qiskit into the lower level descriptive language DAX.
 
 # Installation Instructions
 
@@ -12,11 +11,51 @@ Quantum Computing Project M1 for NCSU's ECE 592. *Compiler for Duke Ion Trap*.
 6. Enter the `tests/` directory
 7. Execute any test files via `python [filename]`
 
+### DAX-Example installation
+* The dax-example project is how simulation will be brought into this qisdax compiler
+* to install the dax-example project follow the instructions on their repository [here](https://gitlab.com/duke-artiq/dax-example)
+
+# Development Information
+## File Descriptions
+
+### qiskit/providers/dax/dax_provider.py
+* The provider object holds information inside it about what backends it has available to it.
+* Currently our provider only points towards the DAXGenerator, but if we wanted to add in simulation abilities, linking in a new backend here is where you would probably do that.
+
+### qiskit/providers/dax/dax_backend.py
+* The backend object is where a few different things are dispatched
+* The load_config() method is how we describe the name and path of the resource toml file
+* The execute function is a qiskit defined function that turns this qiskit circuit into a qasm 'qobj' and then calls the run method described in this dax_backend.py file
+* the run() method calls the qobj_to_dax() function, which is where the transpilation from qasm object to dax object happens.
+
+### qiskit/providers/dax/qobj_to_dax.py
+* This file contains all of the code to take the qobj and turn it into a scheduled dax program.
+* Most feature changes will happen by modifying the code in this file
+
+### qiskit/providers/dax/dax_job.py
+* A job object is what is returned from the execute() function
+* The DAX code is rendered from the jinja template onto the terminal as a method print_dax() on this object
+* If we want to download this as a file as well or instead this is where that change would happen
+
+
+### qiskit/providers/dax/dax_jinja.j2
+* This is the template for what an outputted DAX program should look like. 
+* The instructions that are gathered from the qiskit transpilation are placed inside the template
+
+### tests/resources.toml
+* The resources.toml is the file that describes what the hardware requirements are for each gate operation, and the overall capacaties of the machine
+* The file name for the resources.toml is described in the circuit programs via the following two function calls
+  * backend = dax.get_backend('dax_code_generator')
+  * backend.load_config("resources.toml")
+
+### tests/test_circuit_*.py
+* Each of the test_circuit_* python files runs a different example, each showing off different capabilites or features of the qisdax compiler.
+
 
 # Project Information
 
 ## Problem Statement
-* We propose developing a new backend for Qiskit that uses the DAX language from Duke University to control the ion trap quantum computer.
+* This project is to develop a new provider and backend for Qiskit that uses the DAX language from Duke University to control the ion trap quantum computer.
 
 ### Ion Trap Computers
 * Ion trap computers uses trapped ionized atoms as qubits.
@@ -28,8 +67,8 @@ Quantum Computing Project M1 for NCSU's ECE 592. *Compiler for Duke Ion Trap*.
 
 ### ARTIQ
 * ARTIQ is a framework for controling quantum devices.
-* This is the interface that we will call from Qiskit to set up the physical ion-trap quantum computing device
-* ARTIQ is a Python package, which should allow for easy interfacing with other Python based languages or frameworks
+* The DAX language is an interface to ARTIQ, and that is that we will generate from Qiskit to set up the physical ion-trap quantum computing device
+* DAX is a Python package, which should allow for easy interfacing with other Python based languages or frameworks
 
 ### Qiskit
 * Qiskit is a quantum programing language developed by IBM
@@ -45,6 +84,8 @@ Quantum Computing Project M1 for NCSU's ECE 592. *Compiler for Duke Ion Trap*.
 * We will use ISA example code from Duke in order to generate valid DAX code
 * We may not be able to implement all of the gates that Qiskit, or Duke's ion-trap quantum computer supports
 
+
+<!-- 
 ## Timeline
 * 10/1 Receive the original project
 * 10/8 Define first understanding of the problem statement
@@ -53,7 +94,7 @@ Quantum Computing Project M1 for NCSU's ECE 592. *Compiler for Duke Ion Trap*.
 * 10/29 Proof of concept 
 * 11/12 Miminum Viable Product
 * 11/19 All requirements met
-* 11/27 Submit compiler and documentation
+* 11/27 Submit compiler and documentation -->
 
 
 ## References
