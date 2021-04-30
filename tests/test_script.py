@@ -16,27 +16,3 @@ result = execute(qc, backend, shots=10).print_dax()
 
 qc.measure_all()
 
-
-"""
-"self.rx({})".format(",".join(getattr(inst, "params", [])) + ",".join(inst.qubits))                             
-
-
-def std_replace(val):
-def other(asdf2):
-
-def test(asdf):
-    return "{}({})".format(val, asdf)
-return test
-
-def std_decomp(val):
-def test(lasdf):
-    return ["not({},{})"]
-return test
-
-decoding_dict = {
-
-"rx": std_decomp(["rx"])
-"cx": generate_cx(["cnot", "gnot"])
-
-}
-"""

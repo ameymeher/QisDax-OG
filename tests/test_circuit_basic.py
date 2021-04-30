@@ -13,12 +13,10 @@ qc.h(q[0])
 qc.cx(q[0], q[1])
 qc.y(q[1])
 
-
 qc.measure_all()
 
-print(qc.qasm())
 
-backend.load_config("resources.toml")
+backend.load_config("new_resources.toml")
 dax_result = execute(qc, backend, shots=10)
 dax_result.print_dax()
 

@@ -8,13 +8,13 @@ mirrors = 1
 
 [x]
 time = 1
-lasers = 4
+lasers = 1
 mirrors = 1
 
 [y]
 time = 1
 lasers = 1
-mirrors = 4
+mirrors = 1
 
 [z]
 time = 1

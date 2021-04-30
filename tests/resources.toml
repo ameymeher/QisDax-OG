@@ -5,7 +5,7 @@ time = 1
 size = 1
 
 [x]
-time = 1
+time = 5
 size = 1
 
 [y]
@@ -43,3 +43,7 @@ size = 2
 [cz]
 time = 1
 size = 2
+
+[barrier]
+time = 0
+size = 0

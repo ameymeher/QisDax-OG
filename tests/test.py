@@ -23,8 +23,8 @@ def main():
         "rx": std_replace("rx"), 
     }
 
-    print(decoding_dict["test"]("test"))
-    print(decoding_dict[inst.name](inst))
+    assert decoding_dict["x"]("test") ==  
+    #print(decoding_dict[inst.name](inst))
 
 
 if __name__ == "__main__":

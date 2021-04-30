@@ -55,7 +55,7 @@ def _serialize_timeline(ops, depends, level = 0):
         _serialize_timeline(temp, v[1], level)
         
         if len(depends) > 1 and len(temp) > 0:
-            ops.append(level*"\t" + "with serial:")
+            ops.append(level*"\t" + "with sequential:")
             level += 1
             temp = []
             _serialize_timeline(temp, v[1], level)
@@ -79,9 +79,7 @@ def _schedule_experiment(instr_count, active_gates, lookahead, rem, depends, dec
                   
         op_qbits = inst["qubits"]
         gate_name = inst["name"]
-        line = inst["line"]
-
-        print("schedule_instruction", op_qbits, gate_name, line)
+        line = inst["line"]        
 
         instr_count, lookahead, lookahead_qbits_list = _schedule_instruction(op_qbits, instr_count, active_gates, instruction_queue,
              lookahead, rem, depends, decoding_dict, gate_resources, lookahead_qbits_list, line, gate_name)                        
@@ -123,7 +121,7 @@ def _schedule_instruction(op_qbits, instr_count, active_gates, instruction_queue
         lookahead_qbits_list += op_qbits        
         return instr_count, lookahead, lookahead_qbits_list
     
-    print("appending to active gates", time, size, op_qbits, line, instr_count)
+    
     active_gates.append((time, size, op_qbits, line, instr_count))
     # experiment.instructions.pop(lookahead)
     instruction_queue.pop(lookahead)
@@ -185,7 +183,7 @@ def _experiment_to_seq(experiment, gate_resources):
 
     def barrier_func():
         def noop(inst):
-            return [{"line": "", "qubits": inst.qubits, "name": inst.name}]
+            return [{"line": "# Barrier was here", "qubits": inst.qubits, "name": inst.name}]
         return noop
 
     decoding_dict = {        
