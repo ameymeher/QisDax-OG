@@ -22,7 +22,7 @@ qc.measure(list(range(3)), list(range(3)))
 
 # print(qc.qasm())
 
-backend.load_config("new_resources.toml")
+backend.load_config("resources.toml")
 dax_result = execute(qc, backend, shots=1000)
 dax_result.print_dax()
 
