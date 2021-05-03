@@ -22,6 +22,7 @@ requirements = [
     "setuptools>=40.1.0",
     "qiskit-terra>=0.10.0",
     "toml>=0.10.2",
+    "Jinja2>=2.11.3",
 ]
 
 
