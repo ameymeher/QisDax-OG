@@ -103,3 +103,4 @@ This document describes the project qisdax, whose goal is to compile quantum cir
 * https://m-labs.hk/
 * https://github.com/qiskit-community/qiskit-aqt-provider
 * https://qiskit.org
+* https://gitlab.com/duke-artiq
