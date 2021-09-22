@@ -12,6 +12,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# To add new gate implementation, you must add the name of the gate to the 'decoding_dict',
+# and add it to dax_backend.py 'basis_gates# '.
+
+
 import json
 
 from numpy import pi
@@ -154,31 +158,135 @@ def _experiment_to_seq(experiment, gate_resources):
         def decompose(inst):
             return [
                 {
-                    "line": "self.ry(self.pi/2,{})".format(inst.qubits[0]),
+                    "line": "self.q.ry(self.pi/2,{})".format(inst.qubits[0]),
                     "qubits": [inst.qubits[0]],
                     "name": "ry"
                 },
-                {
-                    "line": "self.xx(self.pi/4,{},{})".format(inst.qubits[0], inst.qubits[1]),
+                { 
+                # xx4 == rxx(pi/4)
+                    "line": "self.q.xx4({},{})".format(inst.qubits[0], inst.qubits[1]),
                     "qubits": inst.qubits,
-                    "name": "xx"
+                    "name": "xx4"
                 },
                 {
-                    "line": "self.ry(self.pi/2,{})".format(inst.qubits[0]),
+                    "line": "self.q.ry(-self.pi/2,{})".format(inst.qubits[0]),
                     "qubits": [inst.qubits[0]],
                     "name": "ry"
                 },                
                 {
-                    "line": "self.rx(self.pi/2,{})".format(inst.qubits[0]),
+                    "line": "self.q.rx(-self.pi/2,{})".format(inst.qubits[1]),
                     "qubits": [inst.qubits[1]],
                     "name": "rx"
                 },
                                 {
-                    "line": "self.rz(self.pi/2,{})".format(inst.qubits[0]),
+                    "line": "self.q.p(-self.pi/2,{})".format(inst.qubits[0]),
                     "qubits": [inst.qubits[0]],
-                    "name": "rz"
+                    "name": "p"
                 },
             ]
+        return decompose
+
+    def custom_ms():
+        def decompose(inst):
+            print(inst)
+            return [                
+                {
+                    "line": "self.q.ms({},{},{})".format(inst.params[0], inst.qubits[0], inst.qubits[1]),
+                    "qubits": inst.qubits,
+                    "name": "ms"
+                },
+            ]
+        return decompose
+
+    def custom_gms():
+        def decompose(inst):
+            # print(dir(inst))
+            # print(inst.__reduce_ex__)
+            if len(inst.qubits) == 2:
+
+                return [                
+                    {
+                    "line": "self.q.gms2()",
+                    "qubits": inst.qubits,
+                    "name": inst.name
+                },
+                ]
+            if len(inst.qubits) == 3:
+
+                return [                
+                    {
+                    "line": "self.q.gms3()",
+                    "qubits": inst.qubits,
+                    "name": inst.name
+                },
+                ]
+            
+
+            return [                
+                {
+                    "line": "self.q.gms()",
+                    "qubits": inst.qubits,
+                    "name": inst.name
+                },
+            ]
+        return decompose
+
+    def custom_rx():
+        def decompose(inst):
+            return [                
+                {
+                    "line": "self.q.rx({},{})".format(inst.params[0], inst.qubits[0]),
+                    "qubits": inst.qubits,
+                    "name": "inst.name"
+                },
+            ]
+        return decompose
+
+    def custom_ry():
+        def decompose(inst):
+            return [                
+                {
+                    "line": "self.q.ry({},{})".format(inst.params[0], inst.qubits[0]),
+                    "qubits": inst.qubits,
+                    "name": "inst.name"
+                },
+            ]
+        return decompose
+
+    def custom_rz():
+        def decompose(inst):
+            return [                
+                {
+                    "line": "self.q.rz({},{})".format(inst.params[0], inst.qubits[0]),
+                    "qubits": inst.qubits,
+                    "name": "inst.name"
+                },
+            ]
+        return decompose
+
+    def custom_rxx():
+        def decompose(inst):
+            if (inst.params[0] == (pi / 4)):
+
+                #  xx4 == rxx(pi/4)
+                returnVal = [                
+                    {
+                        "line": "self.q.xx4({},{})".format(inst.qubits[0], inst.qubits[1]),
+                        "qubits": inst.qubits,
+                        "name": "inst.name"
+                    },
+                ]
+            
+            else:
+                returnVal = [                
+                    {
+                        "line": "self.q.rxx({},{},{})".format(inst.params[0], inst.qubits[0], inst.qubits[1]),
+                        "qubits": inst.qubits,
+                        "name": "inst.name"
+                    },
+                ]
+            
+            return returnVal
         return decompose
 
     def barrier_func():
@@ -192,11 +300,14 @@ def _experiment_to_seq(experiment, gate_resources):
         "y": std_replace("y"), 
         "z": std_replace("z"), 
         "h": std_replace("h"), 
-        "rx": std_replace("rx"), 
-        "ry": std_replace("ry"), 
-        "rz": std_replace("rz"),
+        "rx": custom_rx(), 
+        "ry": custom_ry(), 
+        "rz": custom_rz(),
         "barrier": barrier_func(),
         "cx": custom_cx(),
+        "rxx": custom_rxx(),
+        "ms": custom_ms(),
+        "gms": custom_gms(),
         #todo: "cz": std_decompose("cz")
     }    
     
@@ -211,7 +322,7 @@ def _experiment_to_seq(experiment, gate_resources):
         try:   
             instruction_queue += decoding_dict[inst.name](inst)                                     
         except:        
-            raise Exception("Operation '%s' outside of basis id, x, y, z, h, rx, ry, rz, cx, cz, barrier" % inst.name)
+            raise Exception("Operation '%s' outside of basis id, x, y, z, h, rx, ry, rz, rxx, cx, cz, ms, gms, barrier" % inst.name)
         
 
     while True:
