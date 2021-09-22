@@ -34,7 +34,7 @@ class DAXGenerator(BaseBackend):
             'local': False,
             'coupling_map': None,
             'description': 'DAX ion trap compiler',
-            'basis_gates': ['id', 'x', 'y', 'z', 'h', 'rx', 'ry', 'rxx', 'cx', 'cz'],
+            'basis_gates': ['id', 'x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 'rxx', 'cx', 'cz', 'ms', 'gms',],
             'memory': False,
             'n_qubits': 11,
             'conditional': False,
@@ -48,6 +48,7 @@ class DAXGenerator(BaseBackend):
                     'qasm_def': 'TODO'
                 }
             ]
+            
         }
         super().__init__(
             configuration=BackendConfiguration.from_dict(configuration),
