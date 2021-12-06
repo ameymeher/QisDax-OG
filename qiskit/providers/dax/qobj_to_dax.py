@@ -20,6 +20,10 @@ import json
 
 from numpy import pi
 
+# Caps the number of qubits that can be entangled using XX gate (ie. can there be 
+# an XXX gate? XXXX? etc.)
+capForXX = 3
+
 # global_var = 0
 
 #[h0, h1n ==]
@@ -154,6 +158,7 @@ def _experiment_to_seq(experiment, gate_resources):
                      "name": inst.name}]
         return test
 
+    # NOTE: At the moment, the p gate is used - this might have to be changed depending on what dax uses 
     def custom_cx():
         def decompose(inst):
             return [
@@ -163,7 +168,7 @@ def _experiment_to_seq(experiment, gate_resources):
                     "name": "ry"
                 },
                 { 
-                # xx4 == rxx(pi/4)
+                # NOTE: xx4 gate is equiv to rxx(pi/4)
                     "line": "self.q.xx4({},{})".format(inst.qubits[0], inst.qubits[1]),
                     "qubits": inst.qubits,
                     "name": "xx4"
@@ -186,22 +191,75 @@ def _experiment_to_seq(experiment, gate_resources):
             ]
         return decompose
 
+
+    # NOTE: MS Gate is equiv to XX Gate --> can change notation here
     def custom_ms():
         def decompose(inst):
-            print(inst)
-            return [                
-                {
-                    "line": "self.q.ms({},{},{})".format(inst.params[0], inst.qubits[0], inst.qubits[1]),
-                    "qubits": inst.qubits,
-                    "name": "ms"
-                },
-            ]
+
+            # More qubits in XX... gate then allowed
+            if (len(inst.qubits) > capForXX):
+                raise Exception('Invalid number of qubits')
+
+            # More than 2 qubits uses string cat --> tried to make it more efficient
+            # for 2 qubits by making it a base case
+
+            # If 2 qubits
+            if (len(inst.qubits) == 2):
+                if (inst.params[0] == (pi / 4)):
+                    return [
+                    {
+                        "line": "self.q.xx4({},{})".format(inst.qubits[0], inst.qubits[1]),
+                        "qubits": inst.qubits,
+                        "name": "xx"
+                    }
+                    ]
+                else:
+                    return [                
+                        {
+                            "line": "self.q.xx({},{},{})".format(inst.params[0], inst.qubits[0], inst.qubits[1]),
+                            "qubits": inst.qubits,
+                            "name": "xx"
+                        },
+                    ]
+            # If more than 2 qubits 
+            else: 
+                numberOfArgs = ""
+                args = []
+                nameOfGate = ""
+                for i in range(len(inst.qubits)):
+                    if i != 0:
+                        numberOfArgs += ","
+                    numberOfArgs += "{}"
+                    args.append(inst.qubits[i])
+                    nameOfGate += "x"
+                numberOfArgs += ")"
+
+                if (inst.params[0] == (pi / 4)):
+                    numberOfArgs = "self.q." + nameOfGate + "4(" + numberOfArgs
+                    return [
+                    {
+                        "line": numberOfArgs.format(*args),
+                        "qubits": inst.qubits,
+                        "name": "xx"
+                    }
+                    ]
+                else:
+                    args.insert(0, inst.params[0])
+                    numberOfArgs = "self.q." + nameOfGate + "({}," + numberOfArgs
+                    return [                
+                        {
+                            "line": numberOfArgs.format(*args),
+                            "qubits": inst.qubits,
+                            "name": "xx"
+                        },
+                    ]   
+            
         return decompose
 
+
+    # FIXME: figure out a way to get the parameter from gms circuit
     def custom_gms():
         def decompose(inst):
-            # print(dir(inst))
-            # print(inst.__reduce_ex__)
             if len(inst.qubits) == 2:
 
                 return [                
@@ -280,9 +338,9 @@ def _experiment_to_seq(experiment, gate_resources):
             else:
                 returnVal = [                
                     {
-                        "line": "self.q.rxx({},{},{})".format(inst.params[0], inst.qubits[0], inst.qubits[1]),
+                        "line": "self.q.xx({},{},{})".format(inst.params[0], inst.qubits[0], inst.qubits[1]),
                         "qubits": inst.qubits,
-                        "name": "inst.name"
+                        "name": "xx"
                     },
                 ]
             
