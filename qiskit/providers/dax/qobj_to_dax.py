@@ -12,9 +12,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# To add new gate implementation, you must add the name of the gate to the 'decoding_dict',
+# and add it to dax_backend.py 'basis_gates# '.
+
+
 import json
 
 from numpy import pi
+
+# Caps the number of qubits that can be entangled using XX gate (ie. can there be 
+# an XXX gate? XXXX? etc.)
+capForXX = 3
 
 # global_var = 0
 
@@ -150,35 +158,193 @@ def _experiment_to_seq(experiment, gate_resources):
                      "name": inst.name}]
         return test
 
+    # NOTE: At the moment, the p gate is used - this might have to be changed depending on what dax uses 
     def custom_cx():
         def decompose(inst):
             return [
                 {
-                    "line": "self.ry(self.pi/2,{})".format(inst.qubits[0]),
+                    "line": "self.q.ry(self.pi/2,{})".format(inst.qubits[0]),
                     "qubits": [inst.qubits[0]],
                     "name": "ry"
                 },
-                {
-                    "line": "self.xx(self.pi/4,{},{})".format(inst.qubits[0], inst.qubits[1]),
+                { 
+                # NOTE: xx4 gate is equiv to rxx(pi/4)
+                    "line": "self.q.xx4({},{})".format(inst.qubits[0], inst.qubits[1]),
                     "qubits": inst.qubits,
-                    "name": "xx"
+                    "name": "xx4"
                 },
                 {
-                    "line": "self.ry(self.pi/2,{})".format(inst.qubits[0]),
+                    "line": "self.q.ry(-self.pi/2,{})".format(inst.qubits[0]),
                     "qubits": [inst.qubits[0]],
                     "name": "ry"
                 },                
                 {
-                    "line": "self.rx(self.pi/2,{})".format(inst.qubits[0]),
+                    "line": "self.q.rx(-self.pi/2,{})".format(inst.qubits[1]),
                     "qubits": [inst.qubits[1]],
                     "name": "rx"
                 },
                                 {
-                    "line": "self.rz(self.pi/2,{})".format(inst.qubits[0]),
+                    "line": "self.q.p(-self.pi/2,{})".format(inst.qubits[0]),
                     "qubits": [inst.qubits[0]],
-                    "name": "rz"
+                    "name": "p"
                 },
             ]
+        return decompose
+
+
+    # NOTE: MS Gate is equiv to XX Gate --> can change notation here
+    def custom_ms():
+        def decompose(inst):
+
+            # More qubits in XX... gate then allowed
+            if (len(inst.qubits) > capForXX):
+                raise Exception('Invalid number of qubits')
+
+            # More than 2 qubits uses string cat --> tried to make it more efficient
+            # for 2 qubits by making it a base case
+
+            # If 2 qubits
+            if (len(inst.qubits) == 2):
+                if (inst.params[0] == (pi / 4)):
+                    return [
+                    {
+                        "line": "self.q.xx4({},{})".format(inst.qubits[0], inst.qubits[1]),
+                        "qubits": inst.qubits,
+                        "name": "xx"
+                    }
+                    ]
+                else:
+                    return [                
+                        {
+                            "line": "self.q.xx({},{},{})".format(inst.params[0], inst.qubits[0], inst.qubits[1]),
+                            "qubits": inst.qubits,
+                            "name": "xx"
+                        },
+                    ]
+            # If more than 2 qubits 
+            else: 
+                numberOfArgs = ""
+                args = []
+                nameOfGate = ""
+                for i in range(len(inst.qubits)):
+                    if i != 0:
+                        numberOfArgs += ","
+                    numberOfArgs += "{}"
+                    args.append(inst.qubits[i])
+                    nameOfGate += "x"
+                numberOfArgs += ")"
+
+                if (inst.params[0] == (pi / 4)):
+                    numberOfArgs = "self.q." + nameOfGate + "4(" + numberOfArgs
+                    return [
+                    {
+                        "line": numberOfArgs.format(*args),
+                        "qubits": inst.qubits,
+                        "name": "xx"
+                    }
+                    ]
+                else:
+                    args.insert(0, inst.params[0])
+                    numberOfArgs = "self.q." + nameOfGate + "({}," + numberOfArgs
+                    return [                
+                        {
+                            "line": numberOfArgs.format(*args),
+                            "qubits": inst.qubits,
+                            "name": "xx"
+                        },
+                    ]   
+            
+        return decompose
+
+
+    # FIXME: figure out a way to get the parameter from gms circuit
+    def custom_gms():
+        def decompose(inst):
+            if len(inst.qubits) == 2:
+
+                return [                
+                    {
+                    "line": "self.q.gms2()",
+                    "qubits": inst.qubits,
+                    "name": inst.name
+                },
+                ]
+            if len(inst.qubits) == 3:
+
+                return [                
+                    {
+                    "line": "self.q.gms3()",
+                    "qubits": inst.qubits,
+                    "name": inst.name
+                },
+                ]
+            
+
+            return [                
+                {
+                    "line": "self.q.gms()",
+                    "qubits": inst.qubits,
+                    "name": inst.name
+                },
+            ]
+        return decompose
+
+    def custom_rx():
+        def decompose(inst):
+            return [                
+                {
+                    "line": "self.q.rx({},{})".format(inst.params[0], inst.qubits[0]),
+                    "qubits": inst.qubits,
+                    "name": "inst.name"
+                },
+            ]
+        return decompose
+
+    def custom_ry():
+        def decompose(inst):
+            return [                
+                {
+                    "line": "self.q.ry({},{})".format(inst.params[0], inst.qubits[0]),
+                    "qubits": inst.qubits,
+                    "name": "inst.name"
+                },
+            ]
+        return decompose
+
+    def custom_rz():
+        def decompose(inst):
+            return [                
+                {
+                    "line": "self.q.rz({},{})".format(inst.params[0], inst.qubits[0]),
+                    "qubits": inst.qubits,
+                    "name": "inst.name"
+                },
+            ]
+        return decompose
+
+    def custom_rxx():
+        def decompose(inst):
+            if (inst.params[0] == (pi / 4)):
+
+                #  xx4 == rxx(pi/4)
+                returnVal = [                
+                    {
+                        "line": "self.q.xx4({},{})".format(inst.qubits[0], inst.qubits[1]),
+                        "qubits": inst.qubits,
+                        "name": "inst.name"
+                    },
+                ]
+            
+            else:
+                returnVal = [                
+                    {
+                        "line": "self.q.xx({},{},{})".format(inst.params[0], inst.qubits[0], inst.qubits[1]),
+                        "qubits": inst.qubits,
+                        "name": "xx"
+                    },
+                ]
+            
+            return returnVal
         return decompose
 
     def barrier_func():
@@ -192,11 +358,14 @@ def _experiment_to_seq(experiment, gate_resources):
         "y": std_replace("y"), 
         "z": std_replace("z"), 
         "h": std_replace("h"), 
-        "rx": std_replace("rx"), 
-        "ry": std_replace("ry"), 
-        "rz": std_replace("rz"),
+        "rx": custom_rx(), 
+        "ry": custom_ry(), 
+        "rz": custom_rz(),
         "barrier": barrier_func(),
         "cx": custom_cx(),
+        "rxx": custom_rxx(),
+        "ms": custom_ms(),
+        "gms": custom_gms(),
         #todo: "cz": std_decompose("cz")
     }    
     
@@ -211,7 +380,7 @@ def _experiment_to_seq(experiment, gate_resources):
         try:   
             instruction_queue += decoding_dict[inst.name](inst)                                     
         except:        
-            raise Exception("Operation '%s' outside of basis id, x, y, z, h, rx, ry, rz, cx, cz, barrier" % inst.name)
+            raise Exception("Operation '%s' outside of basis id, x, y, z, h, rx, ry, rz, rxx, cx, cz, ms, gms, barrier" % inst.name)
         
 
     while True:
