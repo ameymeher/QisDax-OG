@@ -54,6 +54,7 @@ def _add_depend(depends, src, dest, line):
 
 #{id:(line, {id3:(line3, {}), id4:(line4, {})}), id2:(line2, {}), id5:..}
 def _serialize_timeline(ops, depends, level = 0):
+
     if len(depends) > 1:
         ops.append(level*"\t" + "with parallel:")
         level += 1
@@ -161,34 +162,14 @@ def _experiment_to_seq(experiment, gate_resources):
     # NOTE: At the moment, the p gate is used - this might have to be changed depending on what dax uses 
     def custom_cx():
         def decompose(inst):
-            return [
+            return [                
                 {
-                    "line": "self.q.ry(self.pi/2,{})".format(inst.qubits[0]),
-                    "qubits": [inst.qubits[0]],
-                    "name": "ry"
-                },
-                { 
-                # NOTE: xx4 gate is equiv to rxx(pi/4)
-                    "line": "self.q.xx4({},{})".format(inst.qubits[0], inst.qubits[1]),
+                    "line": "self.q.cx({},{})".format(inst.qubits[0], inst.qubits[1]),
                     "qubits": inst.qubits,
-                    "name": "xx4"
-                },
-                {
-                    "line": "self.q.ry(-self.pi/2,{})".format(inst.qubits[0]),
-                    "qubits": [inst.qubits[0]],
-                    "name": "ry"
-                },                
-                {
-                    "line": "self.q.rx(-self.pi/2,{})".format(inst.qubits[1]),
-                    "qubits": [inst.qubits[1]],
-                    "name": "rx"
-                },
-                                {
-                    "line": "self.q.p(-self.pi/2,{})".format(inst.qubits[0]),
-                    "qubits": [inst.qubits[0]],
-                    "name": "p"
+                    "name": "inst.name"
                 },
             ]
+
         return decompose
 
 
