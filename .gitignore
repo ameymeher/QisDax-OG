@@ -171,5 +171,10 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
+test/python/*.log
+test/python/*.pdf
+test/python/*.prof
+.stestr/
+
 
 .DS_Store
