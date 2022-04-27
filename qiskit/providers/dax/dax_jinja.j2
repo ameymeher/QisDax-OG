@@ -23,21 +23,20 @@ class QisDaxProgram(DaxProgram, Experiment):
 
     @kernel
     def _run(self):
-        self.core.reset()
-
-        for _ in range(self._num_iterations):
-            self._qiskit_kernel()
+        self._qiskit_kernel()
 
         self.core.wait_until_mu(now_mu())
 
     @kernel
     def _qiskit_kernel(self):
-        self.core.break_realtime()
-        self.q.prep_0_all()
+        with self.data_context:
+            for _ in range(self._num_iterations):
+                self.core.reset()
+                self.q.prep_0_all()
 
-        {% for inst in instructions_list -%}
-        {{inst}}
-        {% endfor %}
+                {% for inst in instructions_list -%}
+                {{inst}}
+                {% endfor %}
 
     @rpc(flags='async')
     def _store_measurements(self, classical_reg, measurements):

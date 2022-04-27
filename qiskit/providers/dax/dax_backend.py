@@ -18,7 +18,7 @@ import toml
 from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendConfiguration
 from . import dax_job
-from . import qobj_to_dax #
+from . import qobj_to_dax
 
 
 class DAXGenerator(BaseBackend):
@@ -55,7 +55,7 @@ class DAXGenerator(BaseBackend):
             provider=provider)
 
     def run(self, qobj):
-        dax_code = qobj_to_dax.qobj_to_dax(qobj, qobj.config.shots, self.gate_resources)
+        dax_code = qobj_to_dax.qobj_to_dax(qobj, self.gate_resources)
         header = {"SDK": "qiskit"}
 
         job = dax_job.DAXJob(self, 0, qobj=qobj, dax_code=dax_code)

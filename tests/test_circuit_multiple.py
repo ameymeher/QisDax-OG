@@ -28,7 +28,7 @@ qc.x(q[2])
 # endregion
 qc.measure_all()
 
-backend.load_config("resources.toml")
-dax_result = execute(qc, backend, shots=10)
+backend.load_config("/home/kaustubh/dev/qisdax/tests/resources.toml")
+dax_result = execute(qc, backend, shots=30, optimization_level=0)
 dax_result.print_dax()
 
