@@ -3,7 +3,8 @@ from qiskit.providers.dax import DAX
 
 dax = DAX.get_provider() # aqt is a provider
 
-backend = dax.get_backend('dax_code_generator') 
+backend = dax.get_backend('dax_code_simulator') 
+# backend = dax.get_backend('dax_code_printer') 
 
 num_bits = 4
 
@@ -21,6 +22,8 @@ qc.measure(list(range(num_bits)), list(range(num_bits)))
 
 backend.load_config("resources.toml")
 print(qc.qasm())
-dax_result = execute(qc, backend, shots=1000)
-dax_result.print_dax()
+dax_job = execute(qc, backend, shots=1000, optimization_level=0)
+res = dax_job.result()
+counts = res.get_counts()
+print(counts)
 

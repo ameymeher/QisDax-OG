@@ -37,11 +37,3 @@ class QisDaxProgram(DaxProgram, Experiment):
                 {% for inst in instructions_list -%}
                 {{inst}}
                 {% endfor %}
-
-    @rpc(flags='async')
-    def _store_measurements(self, classical_reg, measurements):
-        if classical_reg in self._classical_regs:
-            self.append_to_dataset(classical_reg, measurements)
-        else:
-            self._classical_regs.add(classical_reg)
-            self.set_dataset(classical_reg, [measurements])

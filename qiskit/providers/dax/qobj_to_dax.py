@@ -196,19 +196,22 @@ def _get_dax_gate(name: str):
     return nonstandard_names.get(name, name)
 
 
-def _get_instr_str(instruction: QasmQobjInstruction) -> str:
+def _get_instr_str(instruction: QasmQobjInstruction) -> List[str]:
     name = _get_dax_gate(instruction.name)
     allowed_gates = ['i', 'x', 'y', 'z', 'h', 'sqrt_x', 'sqrt_x_dag', 'sqrt_y', 'sqrt_y_dag',
                      'sqrt_z', 'sqrt_z_dag', 'rx', 'ry', 'rz', 'rphi', 'xx', 'xx_dag', 'rxx', 'cz', 'cnot']
     if name in allowed_gates:
-        return _std_replace(instruction=instruction)
+        return [_std_replace(instruction=instruction)]
     elif instruction.name == 'measure':
-        return f'self.q.get_measurement({instruction.qubits[0]})'
+        return [f'self.q.m_z({instruction.qubits[0]})',f'self.q.store_measurement({instruction.qubits[0]})']
     else:
-        return _commented(instruction=instruction)
+        return [_commented(instruction=instruction)]
+
+def _store_creg_info(instruction: QasmQobjInstruction, creg_indices: List[int]):
+    return creg_indices + [instruction.memory[0]]
 
 
-def _get_qasm_strings(experiment: QasmQobjExperiment, parallelized_layers: Tuple[List[List[QasmQobjInstruction]]]) -> List[str]:
+def _get_qasm_data(experiment: QasmQobjExperiment, parallelized_layers: Tuple[List[List[QasmQobjInstruction]]]) -> Tuple[List[str], List[int]]:
     TAB_WIDTH = getenv('TAB_WIDTH', 4)
     outer_parallels = _get_structured(
         experiment=experiment, parallelized_layers=parallelized_layers)
@@ -237,6 +240,9 @@ def _get_qasm_strings(experiment: QasmQobjExperiment, parallelized_layers: Tuple
             to_remove_outer_parallel.append(outer_parallel_idx)
     for outer_parallel_idx in reversed(to_remove_outer_parallel):
         del outer_parallels[outer_parallel_idx]
+    
+    creg_indices = []
+
     for outer_parallel in outer_parallels:
         result.append('with parallel:')
         for seq in outer_parallel:
@@ -246,17 +252,23 @@ def _get_qasm_strings(experiment: QasmQobjExperiment, parallelized_layers: Tuple
                 for inner_seq in parallel:
                     result.append(TAB_WIDTH*3*' ' + 'with sequential:')
                     for inst in inner_seq:
-                        result.append(TAB_WIDTH*4*' ' +
-                                      _get_instr_str(instruction=inst))
-    return result
+                        for inst_line in _get_instr_str(instruction=inst):
+                            result.append(TAB_WIDTH*4*' ' + inst_line)
+                        if inst.name == 'measure':
+                            creg_indices = _store_creg_info(inst, creg_indices=creg_indices)
+                    result.append(TAB_WIDTH*4*' ' + 'pass')
+                result.append(TAB_WIDTH*3*' ' + 'pass')
+            result.append(TAB_WIDTH*2*' ' + 'pass')
+        result.append(TAB_WIDTH*' ' + 'pass')
+    return result, creg_indices
 
 
-def _experiment_to_seq(experiment: QasmQobjExperiment, gate_resources: Dict) -> List[str]:
+def _experiment_to_seq(experiment: QasmQobjExperiment, gate_resources: Dict) -> Tuple[List[str], List[int]]:
     parallelized_layers = _get_parallelized_layers(
         experiment=experiment, gate_resources=gate_resources)
-    qasm_strings = _get_qasm_strings(experiment=experiment,
+    qasm_strings, creg_indices = _get_qasm_data(experiment=experiment,
                                      parallelized_layers=parallelized_layers)
-    return qasm_strings
+    return qasm_strings, creg_indices
 
 
 def qobj_to_dax(qobj: QasmQobj, gate_resources):

@@ -13,10 +13,11 @@
 # that they have been altered from the originals.
 
 
+from qiskit.providers.dax.dax_print_backend import DAXPrinter
+from qiskit.providers.dax.dax_sim_backend import DAXSimulator
 from qiskit.providers.providerutils import filter_backends
 from qiskit.providers import BaseProvider
 
-from .dax_backend import DAXGenerator
 
 class DAXProvider(BaseProvider):
     """Provider for backends for Duke's intermediary quantum language 'DAX' ."""
@@ -25,7 +26,7 @@ class DAXProvider(BaseProvider):
         super().__init__()        
         self.name = 'dax_provider'
         # Populate the list of AQT backends
-        self._backends = [DAXGenerator(provider=self)]
+        self._backends = [DAXPrinter(provider=self), DAXSimulator(provider=self)]
 
     def __str__(self):
         return "<DAXProvider(name={})>".format(self.name)

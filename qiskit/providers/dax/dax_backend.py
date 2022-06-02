@@ -12,22 +12,20 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-import requests
 import toml
 
 from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendConfiguration
-from . import dax_job
 from . import qobj_to_dax
 
 
-class DAXGenerator(BaseBackend):
+class DAXBaseBackend(BaseBackend):
 
-    def __init__(self, provider):
+    def __init__(self, provider, name):
         self.url = None #"https://gateway.aqt.eu/marmot/sim/"
         self.gate_resources = None
         configuration = {
-            'backend_name': 'dax_code_generator',
+            'backend_name': name,
             'backend_version': '0.0.1',
             'url': self.url,
             'simulator': True,
@@ -54,11 +52,14 @@ class DAXGenerator(BaseBackend):
             configuration=BackendConfiguration.from_dict(configuration),
             provider=provider)
 
-    def run(self, qobj):
-        dax_code = qobj_to_dax.qobj_to_dax(qobj, self.gate_resources)
-        header = {"SDK": "qiskit"}
+    def get_job_type(self):
+        pass
 
-        job = dax_job.DAXJob(self, 0, qobj=qobj, dax_code=dax_code)
+    def run(self, qobj):
+        dax_code, creg_indices = qobj_to_dax.qobj_to_dax(qobj, self.gate_resources)
+        job_type = self.get_job_type()
+
+        job = job_type(self, qobj=qobj, dax_code=dax_code, creg_indices=creg_indices)
         return job
 
     def load_config(self, fname):
