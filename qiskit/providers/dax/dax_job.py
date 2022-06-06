@@ -47,7 +47,7 @@ class DAXJob(BaseJob):
             result_counter = [0 for _ in range(total_cregs)]
             for measurement, creg_idx in zip(shot_record, self.creg_indices):
                 result_counter[creg_idx] = measurement
-            hexes.append(hex(int(''.join(map(str, result_counter)), 2)))
+            hexes.append(hex(int(''.join(map(str, reversed(result_counter))), 2)))
         return dict(Counter(hexes))
  
     def result(self, program_callback = None): 
@@ -68,11 +68,10 @@ class DAXJob(BaseJob):
             {
                 'success': True,
                 'shots': self.qobj.config.shots,
-                'dax_code': self.dax_code,
                 'data': {
                     'counts':self.get_result_counts(raw_data=raw_data)
                 },
-                'header': {'name': self.qobj.experiments[0].header.name}
+                'header': self.qobj.experiments[0].header.to_dict(),
             }]
 
         return Result.from_dict({

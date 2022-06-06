@@ -35,5 +35,5 @@ backend.load_config("resources.toml")
 dax_job = execute(qc, backend, shots=30, optimization_level=0)
 res = dax_job.result()
 counts = res.get_counts()
-print(counts)
+print(counts, res.to_dict())
 
