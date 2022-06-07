@@ -1,416 +1,277 @@
-# -*- coding: utf-8 -*-
-
-# This code is part of Qiskit.
-#
-# (C) Copyright IBM 2019.
-#
-# This code is licensed under the Apache License, Version 2.0. You may
-# obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
-#
-# Any modifications or derivative works of this code must retain this
-# copyright notice, and modified files need to carry a notice indicating
-# that they have been altered from the originals.
-
-# To add new gate implementation, you must add the name of the gate to the 'decoding_dict',
-# and add it to dax_backend.py 'basis_gates# '.
+from os import getenv
+from typing import Dict, Generator, List, Tuple
+from qiskit.qobj import QasmQobj, QasmQobjExperiment, QasmQobjInstruction
 
 
-import json
-
-from numpy import pi
-
-# Caps the number of qubits that can be entangled using XX gate (ie. can there be 
-# an XXX gate? XXXX? etc.)
-capForXX = 3
-
-# global_var = 0
-
-#[h0, h1n ==]
-# [h0, h1 ]
-# x1
-# [[h0, x1], h1 ]
-#{id:(line, {id3:(line3, {}), id4:(line4, {})}), id2:(line2, {}), id5:..}
-# y0
-# x2
-
-# [[h0, [x1, y0]], h1 ]
-# [[h0, x1], [h1, y0] ]
-
-    #_add_depend(depends, rem[0][4], instr_count, line)
-    # depends   == array of quantum gates shaped after scheduling
-    # src       == rem[0][4] == id for the 0th element in the remove array
-    # instr_count == id for the element we are adding
-    # line      == dax code string
-def _add_depend(depends, src, dest, line):
-    if src in depends:
-        depends[src][1][dest] = (line, {})
-        return 1
-    for k, v in depends.items():
-        if _add_depend(v[1], src, dest, line):
-            return 1
-    return 0
-   
-
-#{id:(line, {id3:(line3, {}), id4:(line4, {})}), id2:(line2, {}), id5:..}
-def _serialize_timeline(ops, depends, level = 0):
-    if len(depends) > 1:
-        ops.append(level*"\t" + "with parallel:")
-        level += 1
-
-    for k, v in depends.items():
-        temp = []
-        _serialize_timeline(temp, v[1], level)
-        
-        if len(depends) > 1 and len(temp) > 0:
-            ops.append(level*"\t" + "with sequential:")
-            level += 1
-            temp = []
-            _serialize_timeline(temp, v[1], level)
-
-        ops.append(level*"\t" + v[0])
-        ops += [t for t in temp if len(t) > 0]
-
-        if len(depends) > 1 and len(temp) > 0:
-            level -= 1
+def _should_add(instruction: QasmQobjInstruction, layer: List[List[QasmQobjInstruction]], is_first_gate: bool, max_layer_width: int, gate_resources: Dict) -> Tuple[bool, int]:
+    if is_first_gate:
+        return True, _get_width(inst_queue=[instruction], gate_resources=gate_resources)
+    current_layer_width = max([_get_width(layer[q_index][:layer[q_index].index(
+        instruction) + 1], gate_resources=gate_resources) for q_index in instruction.qubits])
+    new_layer_width = max([_get_width(inst_queue=layer[q_index][:layer[q_index].index(
+        instruction) + 1], gate_resources=gate_resources) for q_index in instruction.qubits])
+    return abs(new_layer_width - max_layer_width) < abs(current_layer_width - max_layer_width), new_layer_width
 
 
-
-def _schedule_experiment(instr_count, active_gates, lookahead, rem, depends, decoding_dict, gate_resources, lookahead_qbits_list, instruction_queue):
-    # global global_var
-    while True:
-
-        if lookahead >= len(instruction_queue): 
-            break
-           
-        inst = instruction_queue[lookahead]
-                  
-        op_qbits = inst["qubits"]
-        gate_name = inst["name"]
-        line = inst["line"]        
-
-        instr_count, lookahead, lookahead_qbits_list = _schedule_instruction(op_qbits, instr_count, active_gates, instruction_queue,
-             lookahead, rem, depends, decoding_dict, gate_resources, lookahead_qbits_list, line, gate_name)                        
-    return instr_count, lookahead, lookahead_qbits_list, instruction_queue
+def _get_width(inst_queue: List[QasmQobjInstruction], gate_resources: Dict) -> int:
+    relative_time = list(
+        map(int, gate_resources.get('relative_time').split(',')))
+    return sum([relative_time[len(inst.qubits) - 1] if inst.name != 'barrier' else 0 for inst in inst_queue])
 
 
-def _schedule_instruction(op_qbits, instr_count, active_gates, instruction_queue, lookahead, rem, depends,
- decoding_dict, gate_resources, lookahead_qbits_list, line, gate_name):                        
-    # Get resource information
-    if gate_resources is not None:
-        resource = gate_resources.get(gate_name, {})
-        time = resource.get("time", 1)
-        mirrors = resource.get("mirrors", 1)
-        lasers = resource.get("lasers", 1)
-        size = {"mirrors":mirrors, "lasers":lasers}
-        total_mirrors = gate_resources.get("total_mirrors", 3)
-        total_lasers = gate_resources.get("total_lasers", 3)
-        cap = {"mirrors":total_mirrors, "lasers":total_lasers}
-
-    else:
-        raise ValueError("Please specify a resource file")
-    
-    # Check if we have the resources now
-    depend_check = len(set(op_qbits).intersection(
-        set([t for x in active_gates for t in x[2]]))) > 0
-
-    #catches instructions that are too 'large'
-    # resource_check = cap - sum([x[1] for x in active_gates]) < size
-
-    resource_check = any([ ((cap[res] - sum([x[1][res] for x in active_gates])) < size[res]) for res in cap.keys() ])
-
-    
-    # catches the instructions that depend on an instruction that was skipped
-    lookahead_check = len(set(op_qbits).intersection(set(lookahead_qbits_list))) > 0 
-
-    if depend_check or resource_check or lookahead_check:
-        #print(depend_check,resource_check,lookahead_check)
-        lookahead += 1
-        lookahead_qbits_list += op_qbits        
-        return instr_count, lookahead, lookahead_qbits_list
-    
-    
-    active_gates.append((time, size, op_qbits, line, instr_count))
-    # experiment.instructions.pop(lookahead)
-    instruction_queue.pop(lookahead)
-    
-    if len(rem) == 0:
-        depends[instr_count] = (line, {})
-    else:
-        _add_depend(depends, rem[0][4], instr_count, line)
-    instr_count += 1
-   
-    return instr_count, lookahead, lookahead_qbits_list
+def _get_qbit_indices(qbit_seq: Tuple[List[QasmQobjInstruction]], next_idxs: List[int], gate_resources: Dict) -> List[int]:
+    qbit_sorted = sorted(enumerate(qbit_seq), key=lambda x: _get_width(
+        inst_queue=x[1][next_idxs[x[0]]:], gate_resources=gate_resources), reverse=True)
+    indices = [item[0] for item in qbit_sorted]
+    return indices
 
 
-def _experiment_to_seq(experiment, gate_resources):
-    depends = {}
-    instr_count = 0
-    active_gates = []
-    meas = 0
-    ops = []
-    instruction_queue = []
-
-    def std_replace(inst_name):
-        def test(inst):        
-            return [{"line": "self.q.{}({})".format(inst_name, ",".join(getattr(inst, "params", [])) + ",".join(map(str, inst.qubits))),
-                     "qubits": inst.qubits,
-                     "name": inst.name}]
-        return test
-
-    # NOTE: At the moment, the p gate is used - this might have to be changed depending on what dax uses 
-    def custom_cx():
-        def decompose(inst):
-            return [
-                {
-                    "line": "self.q.ry(self.pi/2,{})".format(inst.qubits[0]),
-                    "qubits": [inst.qubits[0]],
-                    "name": "ry"
-                },
-                { 
-                # NOTE: xx4 gate is equiv to rxx(pi/4)
-                    "line": "self.q.xx4({},{})".format(inst.qubits[0], inst.qubits[1]),
-                    "qubits": inst.qubits,
-                    "name": "xx4"
-                },
-                {
-                    "line": "self.q.ry(-self.pi/2,{})".format(inst.qubits[0]),
-                    "qubits": [inst.qubits[0]],
-                    "name": "ry"
-                },                
-                {
-                    "line": "self.q.rx(-self.pi/2,{})".format(inst.qubits[1]),
-                    "qubits": [inst.qubits[1]],
-                    "name": "rx"
-                },
-                                {
-                    "line": "self.q.p(-self.pi/2,{})".format(inst.qubits[0]),
-                    "qubits": [inst.qubits[0]],
-                    "name": "p"
-                },
-            ]
-        return decompose
+def _resource_count(layer: List[List[QasmQobjInstruction]], gate_resources: Dict) -> Dict[str, int]:
+    lasers_req = 0
+    mirrors_req = 0
+    for q in layer:
+        laser_max = max(
+            [0]+[gate_resources.get(inst.name, {}).get('lasers', 0) for inst in q])
+        lasers_req += laser_max
+        mirror_max = max(
+            [0]+[gate_resources.get(inst.name, {}).get('mirrors', 0) for inst in q])
+        mirrors_req += mirror_max
+    return {'mirrors': mirrors_req, 'lasers': lasers_req}
 
 
-    # NOTE: MS Gate is equiv to XX Gate --> can change notation here
-    def custom_ms():
-        def decompose(inst):
+def _resource_check(to_check: Dict, gate_resources: Dict) -> bool:
+    return all([gate_resources.get(f'total_{k}', 0) >= to_check.get(k) for k in to_check.keys()])
 
-            # More qubits in XX... gate then allowed
-            if (len(inst.qubits) > capForXX):
-                raise Exception('Invalid number of qubits')
 
-            # More than 2 qubits uses string cat --> tried to make it more efficient
-            # for 2 qubits by making it a base case
-
-            # If 2 qubits
-            if (len(inst.qubits) == 2):
-                if (inst.params[0] == (pi / 4)):
-                    return [
-                    {
-                        "line": "self.q.xx4({},{})".format(inst.qubits[0], inst.qubits[1]),
-                        "qubits": inst.qubits,
-                        "name": "xx"
-                    }
-                    ]
+def _get_parallel_layer(qbit_seq: Tuple[List[QasmQobjInstruction]], gate_resources: Dict) -> Generator[List[List[QasmQobjInstruction]], None, None]:
+    next_idxs = [0 for _ in qbit_seq]
+    total_gates = [len(seq) for seq in qbit_seq]
+    while next_idxs != total_gates:
+        first_gate = [True for _ in qbit_seq]
+        width_checked = [False for _ in qbit_seq]
+        layer = [[] for _ in qbit_seq]
+        max_layer_width = 0
+        resource_exhausted = False
+        while not (all(width_checked) or resource_exhausted):
+            for qbit_idx in _get_qbit_indices(qbit_seq=qbit_seq, next_idxs=next_idxs, gate_resources=gate_resources):
+                seq = qbit_seq[qbit_idx]
+                if next_idxs[qbit_idx] == total_gates[qbit_idx]:
+                    width_checked[qbit_idx] = True
+                    continue
+                instruction = seq[next_idxs[qbit_idx]]
+                if instruction in layer[qbit_idx]:
+                    continue
+                for participant in instruction.qubits:
+                    if qbit_seq[participant][next_idxs[participant]] != instruction:
+                        width_checked[qbit_idx] = True
+                        break
                 else:
-                    return [                
-                        {
-                            "line": "self.q.xx({},{},{})".format(inst.params[0], inst.qubits[0], inst.qubits[1]),
-                            "qubits": inst.qubits,
-                            "name": "xx"
-                        },
-                    ]
-            # If more than 2 qubits 
-            else: 
-                numberOfArgs = ""
-                args = []
-                nameOfGate = ""
-                for i in range(len(inst.qubits)):
-                    if i != 0:
-                        numberOfArgs += ","
-                    numberOfArgs += "{}"
-                    args.append(inst.qubits[i])
-                    nameOfGate += "x"
-                numberOfArgs += ")"
-
-                if (inst.params[0] == (pi / 4)):
-                    numberOfArgs = "self.q." + nameOfGate + "4(" + numberOfArgs
-                    return [
-                    {
-                        "line": numberOfArgs.format(*args),
-                        "qubits": inst.qubits,
-                        "name": "xx"
-                    }
-                    ]
-                else:
-                    args.insert(0, inst.params[0])
-                    numberOfArgs = "self.q." + nameOfGate + "({}," + numberOfArgs
-                    return [                
-                        {
-                            "line": numberOfArgs.format(*args),
-                            "qubits": inst.qubits,
-                            "name": "xx"
-                        },
-                    ]   
-            
-        return decompose
+                    is_first_gate = all(first_gate[q]
+                                        for q in instruction.qubits)
+                    should_add, new_width = _should_add(
+                        instruction=instruction, layer=layer, is_first_gate=is_first_gate, max_layer_width=max_layer_width, gate_resources=gate_resources)
+                    if should_add:
+                        for participant in instruction.qubits:
+                            layer[participant].append(instruction)
+                        resource_count = _resource_count(
+                            layer=layer, gate_resources=gate_resources)
+                        resource_check = _resource_check(
+                            to_check=resource_count, gate_resources=gate_resources)
+                        if resource_check:
+                            for participant in instruction.qubits:
+                                next_idxs[participant] += 1
+                                if new_width > max_layer_width:
+                                    max_layer_width = new_width
+                                    for width_idx in range(len(width_checked)):
+                                        width_checked[width_idx] = width_idx in instruction.qubits
+                        else:
+                            for participant in instruction.qubits:
+                                layer[participant].pop()
+                            resource_exhausted = True
+                            break
+                    else:
+                        for participant in instruction.qubits:
+                            width_checked[participant] = True
+        yield layer
 
 
-    # FIXME: figure out a way to get the parameter from gms circuit
-    def custom_gms():
-        def decompose(inst):
-            if len(inst.qubits) == 2:
+def _get_qbit_sequences(experiment: QasmQobjExperiment) -> Tuple[List[QasmQobjInstruction]]:
+    num_qubits: int = max(max(instruction.qubits)
+                          for instruction in experiment.instructions) + 1
+    qbit_seq: Tuple[List[QasmQobjInstruction]] = tuple(
+        [] for _ in range(num_qubits))
+    for idx in range(len(experiment.instructions)):
+        instruction: QasmQobjInstruction = experiment.instructions[idx]
+        for qubit in instruction.qubits:
+            qbit_seq[qubit].append(instruction)
+    return qbit_seq
 
-                return [                
-                    {
-                    "line": "self.q.gms2()",
-                    "qubits": inst.qubits,
-                    "name": inst.name
-                },
-                ]
-            if len(inst.qubits) == 3:
 
-                return [                
-                    {
-                    "line": "self.q.gms3()",
-                    "qubits": inst.qubits,
-                    "name": inst.name
-                },
-                ]
-            
+def _get_parallelized_layers(experiment: QasmQobjExperiment, gate_resources: Dict) -> Tuple[List[List[QasmQobjInstruction]]]:
+    qubit_seq = _get_qbit_sequences(experiment=experiment)
+    return tuple(_get_parallel_layer(
+        qbit_seq=qubit_seq, gate_resources=gate_resources))
 
-            return [                
-                {
-                    "line": "self.q.gms()",
-                    "qubits": inst.qubits,
-                    "name": inst.name
-                },
-            ]
-        return decompose
 
-    def custom_rx():
-        def decompose(inst):
-            return [                
-                {
-                    "line": "self.q.rx({},{})".format(inst.params[0], inst.qubits[0]),
-                    "qubits": inst.qubits,
-                    "name": "inst.name"
-                },
-            ]
-        return decompose
-
-    def custom_ry():
-        def decompose(inst):
-            return [                
-                {
-                    "line": "self.q.ry({},{})".format(inst.params[0], inst.qubits[0]),
-                    "qubits": inst.qubits,
-                    "name": "inst.name"
-                },
-            ]
-        return decompose
-
-    def custom_rz():
-        def decompose(inst):
-            return [                
-                {
-                    "line": "self.q.rz({},{})".format(inst.params[0], inst.qubits[0]),
-                    "qubits": inst.qubits,
-                    "name": "inst.name"
-                },
-            ]
-        return decompose
-
-    def custom_rxx():
-        def decompose(inst):
-            if (inst.params[0] == (pi / 4)):
-
-                #  xx4 == rxx(pi/4)
-                returnVal = [                
-                    {
-                        "line": "self.q.xx4({},{})".format(inst.qubits[0], inst.qubits[1]),
-                        "qubits": inst.qubits,
-                        "name": "inst.name"
-                    },
-                ]
-            
-            else:
-                returnVal = [                
-                    {
-                        "line": "self.q.xx({},{},{})".format(inst.params[0], inst.qubits[0], inst.qubits[1]),
-                        "qubits": inst.qubits,
-                        "name": "xx"
-                    },
-                ]
-            
-            return returnVal
-        return decompose
-
-    def barrier_func():
-        def noop(inst):
-            return [{"line": "# Barrier was here", "qubits": inst.qubits, "name": inst.name}]
-        return noop
-
-    decoding_dict = {        
-        "id": std_replace("id"), 
-        "x": std_replace("x"), 
-        "y": std_replace("y"), 
-        "z": std_replace("z"), 
-        "h": std_replace("h"), 
-        "rx": custom_rx(), 
-        "ry": custom_ry(), 
-        "rz": custom_rz(),
-        "barrier": barrier_func(),
-        "cx": custom_cx(),
-        "rxx": custom_rxx(),
-        "ms": custom_ms(),
-        "gms": custom_gms(),
-        #todo: "cz": std_decompose("cz")
-    }    
-    
-    # remove/rem -> remove_
-    # lookahead ->
-    # lookahead qbits list -> 
-    while len(experiment.instructions):      
-        inst = experiment.instructions.pop(0)  
-        if inst.name == 'measure':                        
+def _merge_lines(multi_qubit_pairing: Tuple[int], layer: List[List[QasmQobjInstruction]]) -> List[List[List[QasmQobjInstruction]]]:
+    serial_block: List[List[List[QasmQobjInstruction]]] = []
+    track_index = {}
+    for q in multi_qubit_pairing:
+        track_index[q] = 0
+    while not all([track_index[q] == len(layer[q]) for q in multi_qubit_pairing]):
+        parallel_block: List[List[QasmQobjInstruction]] = []
+        multi_gate = None
+        for q in multi_qubit_pairing:
+            if track_index[q] >= len(layer[q]):
+                break
+            curr_gate = layer[q][track_index[q]]
+            if multi_gate is not None and multi_gate != curr_gate:
+                break
+            multi_gate = curr_gate
+        else:
+            serial_block_inner: List[QasmQobjInstruction] = []
+            inst = layer[multi_qubit_pairing[0]
+                         ][track_index[multi_qubit_pairing[0]]]
+            serial_block_inner.append(inst)
+            parallel_block.append(serial_block_inner)
+            for q in inst.qubits:
+                track_index[q] += 1
+            serial_block.append(parallel_block)
             continue
 
-        try:   
-            instruction_queue += decoding_dict[inst.name](inst)                                     
-        except:        
-            raise Exception("Operation '%s' outside of basis id, x, y, z, h, rx, ry, rz, rxx, cx, cz, ms, gms, barrier" % inst.name)
-        
-
-    while True:
-
-        if len(active_gates) == 0 and len(instruction_queue) == 0:
-            break
-
-        # Clear out unused things
-        # removes the gates that just finished execution from active_gates
-        remove = []
-        for i, x in enumerate(active_gates):            
-            active_gates[i] = (x[0] - 1, *x[1:5])
-            if x[0] == 0:
-                remove.append(active_gates[i])
-        for x in remove:
-            active_gates.remove(x)
-            
-        lookahead = 0
-        lookahead_qbits_list = []
-        
-
-        instr_count, lookahead, lookahead_qbits_list, instruction_queue = _schedule_experiment(instr_count, active_gates, lookahead,
-         remove, depends, decoding_dict, gate_resources, lookahead_qbits_list, instruction_queue)
-
-    _serialize_timeline(ops, depends)
-
-    return ops
+        for qb in multi_qubit_pairing:
+            serial_block_inner: List[QasmQobjInstruction] = []
+            while True:
+                if track_index[qb] >= len(layer[qb]):
+                    break
+                inst = layer[qb][track_index[qb]]
+                if len(inst.qubits) > 1:
+                    break
+                serial_block_inner.append(inst)
+                track_index[qb] += 1
+            parallel_block.append(serial_block_inner)
+        serial_block.append(parallel_block)
+    return serial_block
 
 
-def qobj_to_dax(qobj, shots, gate_resources):
+def _get_structured(experiment: QasmQobjExperiment, parallelized_layers: Tuple[List[List[QasmQobjInstruction]]]):
+    num_qubits: int = max(max(instruction.qubits)
+                          for instruction in experiment.instructions) + 1
+    outer_parallel: List[List[List[List[List[QasmQobjInstruction]]]]] = []
+    for layer in parallelized_layers:
+        multi_qubit_gates = [
+            inst for seq in layer for inst in seq if len(inst.qubits) > 1]
+        multi_qubit_pairing_set = set(
+            [tuple(inst.qubits) for inst in multi_qubit_gates])
+        for q in range(num_qubits):
+            count = len([a for a in multi_qubit_pairing_set if q in a])
+            if count > 1:
+                raise Exception("Unable to convert this timeline to DAX")
+        structured: List[List[List[List[QasmQobjInstruction]]]] = []
+        processed = [False for _ in range(num_qubits)]
+        for multi_qubit_pairing in multi_qubit_pairing_set:
+            structured.append(_merge_lines(
+                multi_qubit_pairing=multi_qubit_pairing, layer=layer))
+            for q in multi_qubit_pairing:
+                processed[q] = True
+        for idx, val in enumerate(processed):
+            if not val:
+                structured.append([[layer[idx]]])
+        outer_parallel.append(structured)
+    return outer_parallel
+
+
+def _std_replace(instruction: QasmQobjInstruction) -> str:
+    return f'self.q.{_get_dax_gate(instruction.name)}({",".join(getattr(instruction, "params", [])) + ",".join(map(str, instruction.qubits))})'
+
+
+def _commented(instruction: QasmQobjInstruction) -> str:
+    return '# ' + _std_replace(instruction=instruction)
+
+
+def _get_dax_gate(name: str):
+    nonstandard_names = {
+        'cx': 'cnot',
+    }
+    return nonstandard_names.get(name, name)
+
+
+def _get_instr_str(instruction: QasmQobjInstruction) -> List[str]:
+    name = _get_dax_gate(instruction.name)
+    allowed_gates = ['i', 'x', 'y', 'z', 'h', 'sqrt_x', 'sqrt_x_dag', 'sqrt_y', 'sqrt_y_dag',
+                     'sqrt_z', 'sqrt_z_dag', 'rx', 'ry', 'rz', 'rphi', 'xx', 'xx_dag', 'rxx', 'cz', 'cnot']
+    if name in allowed_gates:
+        return [_std_replace(instruction=instruction)]
+    elif instruction.name == 'measure':
+        return [f'self.q.m_z({instruction.qubits[0]})',f'self.q.store_measurement({instruction.qubits[0]})']
+    else:
+        return [_commented(instruction=instruction)]
+
+def _store_creg_info(instruction: QasmQobjInstruction, creg_indices: List[int]):
+    return creg_indices + [instruction.memory[0]]
+
+
+def _get_qasm_data(experiment: QasmQobjExperiment, parallelized_layers: Tuple[List[List[QasmQobjInstruction]]]) -> Tuple[List[str], List[int]]:
+    TAB_WIDTH = getenv('TAB_WIDTH', 4)
+    outer_parallels = _get_structured(
+        experiment=experiment, parallelized_layers=parallelized_layers)
+    result = []
+    to_remove_outer_parallel = []
+    for outer_parallel_idx, outer_parallel in enumerate(outer_parallels):
+        to_remove_seq = []
+        for seq_idx, seq in enumerate(outer_parallel):
+            to_remove_parallel = []
+            for parallel_idx, parallel in enumerate(seq):
+                to_remove_inner_seq = []
+                for inner_seq_idx, inner_seq in enumerate(parallel):
+                    if len(inner_seq) == 0:
+                        to_remove_inner_seq.append(inner_seq_idx)
+                for inner_seq_idx in reversed(to_remove_inner_seq):
+                    del parallel[inner_seq_idx]
+                if len(parallel) == 0:
+                    to_remove_parallel.append(parallel_idx)
+            for parallel_idx in reversed(to_remove_parallel):
+                del seq[parallel_idx]
+            if len(seq) == 0:
+                to_remove_seq.append(seq_idx)
+        for seq_idx in reversed(to_remove_seq):
+            del outer_parallel[seq_idx]
+        if len(outer_parallel) == 0:
+            to_remove_outer_parallel.append(outer_parallel_idx)
+    for outer_parallel_idx in reversed(to_remove_outer_parallel):
+        del outer_parallels[outer_parallel_idx]
+    
+    creg_indices = []
+
+    for outer_parallel in outer_parallels:
+        result.append('with parallel:')
+        for seq in outer_parallel:
+            result.append(TAB_WIDTH*' ' + 'with sequential:')
+            for parallel in seq:
+                result.append(TAB_WIDTH*2*' ' + 'with parallel:')
+                for inner_seq in parallel:
+                    result.append(TAB_WIDTH*3*' ' + 'with sequential:')
+                    for inst in inner_seq:
+                        for inst_line in _get_instr_str(instruction=inst):
+                            result.append(TAB_WIDTH*4*' ' + inst_line)
+                        if inst.name == 'measure':
+                            creg_indices = _store_creg_info(inst, creg_indices=creg_indices)
+                    result.append(TAB_WIDTH*4*' ' + 'pass')
+                result.append(TAB_WIDTH*3*' ' + 'pass')
+            result.append(TAB_WIDTH*2*' ' + 'pass')
+        result.append(TAB_WIDTH*' ' + 'pass')
+    return result, creg_indices
+
+
+def _experiment_to_seq(experiment: QasmQobjExperiment, gate_resources: Dict) -> Tuple[List[str], List[int]]:
+    parallelized_layers = _get_parallelized_layers(
+        experiment=experiment, gate_resources=gate_resources)
+    qasm_strings, creg_indices = _get_qasm_data(experiment=experiment,
+                                     parallelized_layers=parallelized_layers)
+    return qasm_strings, creg_indices
+
+
+def qobj_to_dax(qobj: QasmQobj, gate_resources):
     """Return a list of DAX code strings in a qobj
 
     If we were actually working with the hardware we would be executing these code strings
@@ -419,6 +280,6 @@ def qobj_to_dax(qobj, shots, gate_resources):
     """
 
     if len(qobj.experiments) > 1:
-        raise Exception    
+        raise Exception
 
     return _experiment_to_seq(qobj.experiments[0], gate_resources)

@@ -1,0 +1,10 @@
+[dax_program_sim]
+num_qubits = 4
+backend = qiskit
+
+[dax_program_sim.qiskit]
+backend_type = state_vector
+
+[dax_program_sim.qiskit_shots]
+shots = 100
+backend_type = state_vector

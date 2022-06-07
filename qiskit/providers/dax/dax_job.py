@@ -14,34 +14,64 @@
 
 # pylint: disable=protected-access
 
-import time
+from collections import Counter
+import os
+from tempfile import gettempdir
+from uuid import uuid4
+import numpy as np
 
-import requests
 
 from qiskit.providers import BaseJob
-from qiskit.providers import JobError
-from qiskit.providers import JobTimeoutError
 from qiskit.result import Result
 from jinja2 import Environment, FileSystemLoader
 
 
 class DAXJob(BaseJob):
-    def __init__(self, backend, job_id, qobj=None, dax_code=None):
+    def __init__(self, backend, job_id=str(uuid4()), qobj=None, dax_code=None, creg_indices=None):
         super().__init__(backend, job_id)
         self._backend = backend        
         self.qobj = qobj
         self.dax_code = dax_code
         self._job_id = job_id        
+        self.creg_indices = creg_indices
+    
+    def get_raw_data(self, fname):
+        return None
+
+    def get_result_counts(self, raw_data):
+        shots = int(self.qobj.config.shots)
+        total_cregs = sum(map(lambda x: x[1], self.qobj.experiments[0].header.creg_sizes))
+        raw_reshaped = np.asarray(raw_data).flatten().reshape((shots, -1)).tolist()
+        hexes = []
+        for shot_record in raw_reshaped:
+            result_counter = [0 for _ in range(total_cregs)]
+            for measurement, creg_idx in zip(shot_record, self.creg_indices):
+                result_counter[creg_idx] = measurement
+            hexes.append(hex(int(''.join(map(str, reversed(result_counter))), 2)))
+        return dict(Counter(hexes))
  
-    def result(self):        
-        result = {'samples': [0,0]}
+    def result(self, program_callback = None): 
+        dax_program = self.get_dax()
+        if program_callback:
+            program_callback(dax_program)
+        fname = os.path.join(gettempdir(), f'qisdax-{self._job_id}.py')
+
+        with open(fname, 'w', encoding="utf-8") as f:
+            f.write(dax_program)
+
+        raw = self.get_raw_data(fname)
+        return self.get_result_obj(raw_data=raw) 
+
+
+    def get_result_obj(self, raw_data):
         results = [
             {
                 'success': True,
-                'shots': len(result['samples']),
-                'dax_code': self.dax_code,
-                'data': {},
-                'header': {'name': self.qobj.experiments[0].header.name}
+                'shots': self.qobj.config.shots,
+                'data': {
+                    'counts':self.get_result_counts(raw_data=raw_data)
+                },
+                'header': self.qobj.experiments[0].header.to_dict(),
             }]
 
         return Result.from_dict({
@@ -53,22 +83,19 @@ class DAXJob(BaseJob):
             'job_id': self._job_id,
         })
 
-    def print_dax(self):
-        print("--- DAX Code ---\n")
+
+    def get_dax(self):
 
         file_loader = FileSystemLoader(searchpath="../qiskit/providers/dax")        
         env = Environment(loader=file_loader)
-        template = env.get_template('dax_jinja_2.j2')
+        template = env.get_template('dax_jinja.j2')
 
         num_qubits = self.qobj.to_dict()["config"]["n_qubits"]
-        # print("\n\nqobj ", self.qobj.to_dict())#["Config"]["n_qubits"])
 
-        dax_program = template.render(shots=10, instructions_list=self.dax_code, qubits=num_qubits)
+        dax_program = template.render(
+            shots=self.qobj.config.shots, instructions_list=self.dax_code, qubits=num_qubits)
 
-        print(dax_program)
-
-        #for l in self.dax_code:
-        #    print(l)
+        return dax_program
 
     def cancel(self):
         pass
@@ -78,4 +105,3 @@ class DAXJob(BaseJob):
 
     def submit(self):
         pass
-        
