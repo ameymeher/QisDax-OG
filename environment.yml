@@ -117,7 +117,7 @@ dependencies:
     - attrs==21.4.0
     - charset-normalizer==2.0.12
     - cryptography==37.0.2
-    - dax==6.8
+    - git+https://gitlab.com/duke-artiq/dax@v6.8
     - git+https://gitlab.com/duke-artiq/dax-program-sim.git@kaustubh-may22
     - dill==0.3.5.1
     - dlx==1.0.4
@@ -125,7 +125,7 @@ dependencies:
     - fastdtw==0.3.4
     - fastjsonschema==2.15.3
     - flake8==4.0.1
-    - flake8-artiq==0.0.0
+    - git+https://gitlab.com/duke-artiq/flake8-artiq@master
     - h5py==3.1.0
     - idna==3.3
     - importlib-resources==5.7.1
