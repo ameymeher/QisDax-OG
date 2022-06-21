@@ -21,10 +21,10 @@ requirements = [
     "artiq @ git+https://github.com/m-labs/artiq.git",
     "dax @ git+https://gitlab.com/duke-artiq/dax@v6.8",
     "dax-program-sim @ git+https://gitlab.com/duke-artiq/dax-program-sim.git",
+    "Jinja2>=2.11.3",
     "qiskit>=0.36.2",
     "sipyco @ git+https://github.com/m-labs/sipyco@v1.4",
     "toml>=0.10.2",
-    "Jinja2>=2.11.3",
 ]
 
 
