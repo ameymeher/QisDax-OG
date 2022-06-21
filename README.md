@@ -3,11 +3,10 @@ This document describes the project qisdax, whose goal is to compile quantum cir
 
 # Installation Instructions
 
-1. Install [Python 3](https://www.python.org/downloads/) (&lt;3.10) and [pip](https://pip.pypa.io/en/stable/installation/).
+1. Install [Python 3](https://www.python.org/downloads/) and [pip](https://pip.pypa.io/en/stable/installation/).
 2. In the root of the repository, run
 ```
 # Optional: Activate a venv / conda environment
-pip3 install -r requirements.txt
 pip3 install -e .
 ```
 3. Usage examples can be found in the `tests/` directory. Create a `.dax` file as specified [here](https://gitlab.com/duke-artiq/dax-program-sim#usage), then run:

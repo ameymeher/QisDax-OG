@@ -18,9 +18,11 @@ import setuptools
 import sys
 
 requirements = [
-    "requests>=2.19",
-    "setuptools>=40.1.0",
-    "qiskit-terra>=0.10.0",
+    "artiq @ git+https://github.com/m-labs/artiq.git",
+    "dax @ git+https://gitlab.com/duke-artiq/dax@v6.8",
+    "dax-program-sim @ git+https://gitlab.com/duke-artiq/dax-program-sim.git",
+    "qiskit>=0.36.2",
+    "sipyco @ git+https://github.com/m-labs/sipyco@v1.4",
     "toml>=0.10.2",
     "Jinja2>=2.11.3",
 ]
@@ -28,7 +30,7 @@ requirements = [
 
 if not hasattr(setuptools,
                'find_namespace_packages') or not inspect.ismethod(
-                    setuptools.find_namespace_packages):
+        setuptools.find_namespace_packages):
     print("Your setuptools version:'{}' does not support PEP 420 "
           "(find_namespace_packages). Upgrade it to version >='40.1.0' and "
           "repeat install.".format(setuptools.__version__))
@@ -76,6 +78,6 @@ setuptools.setup(
     packages=setuptools.find_namespace_packages(exclude=['test*']),
     install_requires=requirements,
     include_package_data=True,
-    python_requires=">=3.5",
+    python_requires=">=3.5, <3.10",
     zip_safe=False
 )
