@@ -203,7 +203,7 @@ def _get_instr_str(instruction: QasmQobjInstruction) -> List[str]:
     if name in allowed_gates:
         return [_std_replace(instruction=instruction)]
     elif instruction.name == 'measure':
-        return [f'self.q.m_z({instruction.qubits[0]})',f'self.q.store_measurement({instruction.qubits[0]})']
+        return [f'self.q.m_z({instruction.qubits[0]})']
     else:
         return [_commented(instruction=instruction)]
 
@@ -248,6 +248,8 @@ def _get_qasm_data(experiment: QasmQobjExperiment, parallelized_layers: Tuple[Li
         for seq in outer_parallel:
             result.append(TAB_WIDTH*' ' + 'with sequential:')
             for parallel in seq:
+                creg_combined = []
+                q_indices = []
                 result.append(TAB_WIDTH*2*' ' + 'with parallel:')
                 for inner_seq in parallel:
                     result.append(TAB_WIDTH*3*' ' + 'with sequential:')
@@ -255,9 +257,13 @@ def _get_qasm_data(experiment: QasmQobjExperiment, parallelized_layers: Tuple[Li
                         for inst_line in _get_instr_str(instruction=inst):
                             result.append(TAB_WIDTH*4*' ' + inst_line)
                         if inst.name == 'measure':
-                            creg_indices = _store_creg_info(inst, creg_indices=creg_indices)
+                            q_indices.append(inst.qubits[0])
+                            creg_combined = _store_creg_info(inst, creg_indices=creg_combined)
                     result.append(TAB_WIDTH*4*' ' + 'pass')
                 result.append(TAB_WIDTH*3*' ' + 'pass')
+                if creg_combined:
+                    creg_indices.append(creg_combined)
+                    result.append(TAB_WIDTH*2*' ' + f'self.q.store_measurements({q_indices})')
             result.append(TAB_WIDTH*2*' ' + 'pass')
         result.append(TAB_WIDTH*' ' + 'pass')
     return result, creg_indices
