@@ -6,10 +6,8 @@ from qiskit.qobj import QasmQobj, QasmQobjExperiment, QasmQobjInstruction
 def _should_add(instruction: QasmQobjInstruction, layer: List[List[QasmQobjInstruction]], is_first_gate: bool, max_layer_width: int, gate_resources: Dict) -> Tuple[bool, int]:
     if is_first_gate:
         return True, _get_width(inst_queue=[instruction], gate_resources=gate_resources)
-    current_layer_width = max([_get_width(layer[q_index][:layer[q_index].index(
-        instruction) + 1], gate_resources=gate_resources) for q_index in instruction.qubits])
-    new_layer_width = max([_get_width(inst_queue=layer[q_index][:layer[q_index].index(
-        instruction) + 1], gate_resources=gate_resources) for q_index in instruction.qubits])
+    current_layer_width = max([_get_width(layer[q_index], gate_resources=gate_resources) for q_index in instruction.qubits])
+    new_layer_width = max([_get_width(inst_queue=layer[q_index]+[instruction], gate_resources=gate_resources) for q_index in instruction.qubits])
     return abs(new_layer_width - max_layer_width) < abs(current_layer_width - max_layer_width), new_layer_width
 
 
@@ -84,11 +82,16 @@ def _get_parallel_layer(qbit_seq: Tuple[List[QasmQobjInstruction]], gate_resourc
                                     max_layer_width = new_width
                                     for width_idx in range(len(width_checked)):
                                         width_checked[width_idx] = width_idx in instruction.qubits
+                                elif new_width == max_layer_width:
+                                    for width_idx in instruction.qubits:
+                                        width_checked[width_idx] = True
                         else:
                             for participant in instruction.qubits:
                                 layer[participant].pop()
                             resource_exhausted = True
                             break
+                        for participant in instruction.qubits:
+                            first_gate[participant] = False
                     else:
                         for participant in instruction.qubits:
                             width_checked[participant] = True
@@ -182,7 +185,7 @@ def _get_structured(experiment: QasmQobjExperiment, parallelized_layers: Tuple[L
 
 
 def _std_replace(instruction: QasmQobjInstruction) -> str:
-    return f'self.q.{_get_dax_gate(instruction.name)}({",".join(getattr(instruction, "params", [])) + ",".join(map(str, instruction.qubits))})'
+    return f'self.q.{_get_dax_gate(instruction.name)}({",".join(tuple(map(str, getattr(instruction, "params", []))) + tuple(map(str, instruction.qubits)))})'
 
 
 def _commented(instruction: QasmQobjInstruction) -> str:
@@ -192,6 +195,8 @@ def _commented(instruction: QasmQobjInstruction) -> str:
 def _get_dax_gate(name: str):
     nonstandard_names = {
         'cx': 'cnot',
+        'sdg': 'sqrt_z_dag',
+        's': 'sqrt_z',
     }
     return nonstandard_names.get(name, name)
 
@@ -203,7 +208,7 @@ def _get_instr_str(instruction: QasmQobjInstruction) -> List[str]:
     if name in allowed_gates:
         return [_std_replace(instruction=instruction)]
     elif instruction.name == 'measure':
-        return [f'self.q.m_z({instruction.qubits[0]})',f'self.q.store_measurement({instruction.qubits[0]})']
+        return [f'self.q.m_z({instruction.qubits[0]})']
     else:
         return [_commented(instruction=instruction)]
 
@@ -248,6 +253,8 @@ def _get_qasm_data(experiment: QasmQobjExperiment, parallelized_layers: Tuple[Li
         for seq in outer_parallel:
             result.append(TAB_WIDTH*' ' + 'with sequential:')
             for parallel in seq:
+                creg_combined = []
+                q_indices = []
                 result.append(TAB_WIDTH*2*' ' + 'with parallel:')
                 for inner_seq in parallel:
                     result.append(TAB_WIDTH*3*' ' + 'with sequential:')
@@ -255,9 +262,13 @@ def _get_qasm_data(experiment: QasmQobjExperiment, parallelized_layers: Tuple[Li
                         for inst_line in _get_instr_str(instruction=inst):
                             result.append(TAB_WIDTH*4*' ' + inst_line)
                         if inst.name == 'measure':
-                            creg_indices = _store_creg_info(inst, creg_indices=creg_indices)
+                            q_indices.append(inst.qubits[0])
+                            creg_combined = _store_creg_info(inst, creg_indices=creg_combined)
                     result.append(TAB_WIDTH*4*' ' + 'pass')
                 result.append(TAB_WIDTH*3*' ' + 'pass')
+                if creg_combined:
+                    creg_indices.append(creg_combined)
+                    result.append(TAB_WIDTH*2*' ' + f'self.q.store_measurements({q_indices})')
             result.append(TAB_WIDTH*2*' ' + 'pass')
         result.append(TAB_WIDTH*' ' + 'pass')
     return result, creg_indices

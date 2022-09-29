@@ -1,5 +1,5 @@
 [dax_program_sim]
-num_qubits = 4
+num_qubits = 6
 backend = qiskit
 
 [dax_program_sim.qiskit]

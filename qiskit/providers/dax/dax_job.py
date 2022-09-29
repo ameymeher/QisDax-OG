@@ -42,12 +42,13 @@ class DAXJob(BaseJob):
         shots = int(self.qobj.config.shots)
         total_cregs = sum(map(lambda x: x[1], self.qobj.experiments[0].header.creg_sizes))
         raw_reshaped = np.asarray(raw_data).flatten().reshape((shots, -1)).tolist()
+        creg_reshaped = np.asarray(self.creg_indices).flatten().tolist()
         hexes = []
         for shot_record in raw_reshaped:
             result_counter = [0 for _ in range(total_cregs)]
-            for measurement, creg_idx in zip(shot_record, self.creg_indices):
-                result_counter[creg_idx] = measurement
-            hexes.append(hex(int(''.join(map(str, reversed(result_counter))), 2)))
+            for measurement, creg_idx in zip(shot_record, creg_reshaped):
+                result_counter[total_cregs - creg_idx - 1] = measurement
+            hexes.append(hex(int(''.join(map(str, result_counter)), 2)))
         return dict(Counter(hexes))
  
     def result(self, program_callback = None): 
