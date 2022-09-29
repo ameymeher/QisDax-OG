@@ -82,6 +82,9 @@ def _get_parallel_layer(qbit_seq: Tuple[List[QasmQobjInstruction]], gate_resourc
                                     max_layer_width = new_width
                                     for width_idx in range(len(width_checked)):
                                         width_checked[width_idx] = width_idx in instruction.qubits
+                                elif new_width == max_layer_width:
+                                    for width_idx in instruction.qubits:
+                                        width_checked[width_idx] = True
                         else:
                             for participant in instruction.qubits:
                                 layer[participant].pop()
