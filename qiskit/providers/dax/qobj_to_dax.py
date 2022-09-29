@@ -6,10 +6,8 @@ from qiskit.qobj import QasmQobj, QasmQobjExperiment, QasmQobjInstruction
 def _should_add(instruction: QasmQobjInstruction, layer: List[List[QasmQobjInstruction]], is_first_gate: bool, max_layer_width: int, gate_resources: Dict) -> Tuple[bool, int]:
     if is_first_gate:
         return True, _get_width(inst_queue=[instruction], gate_resources=gate_resources)
-    current_layer_width = max([_get_width(layer[q_index][:layer[q_index].index(
-        instruction) + 1], gate_resources=gate_resources) for q_index in instruction.qubits])
-    new_layer_width = max([_get_width(inst_queue=layer[q_index][:layer[q_index].index(
-        instruction) + 1], gate_resources=gate_resources) for q_index in instruction.qubits])
+    current_layer_width = max([_get_width(layer[q_index], gate_resources=gate_resources) for q_index in instruction.qubits])
+    new_layer_width = max([_get_width(inst_queue=layer[q_index]+[instruction], gate_resources=gate_resources) for q_index in instruction.qubits])
     return abs(new_layer_width - max_layer_width) < abs(current_layer_width - max_layer_width), new_layer_width
 
 
@@ -89,6 +87,8 @@ def _get_parallel_layer(qbit_seq: Tuple[List[QasmQobjInstruction]], gate_resourc
                                 layer[participant].pop()
                             resource_exhausted = True
                             break
+                        for participant in instruction.qubits:
+                            first_gate[participant] = False
                     else:
                         for participant in instruction.qubits:
                             width_checked[participant] = True
