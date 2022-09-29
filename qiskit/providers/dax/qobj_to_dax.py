@@ -182,7 +182,7 @@ def _get_structured(experiment: QasmQobjExperiment, parallelized_layers: Tuple[L
 
 
 def _std_replace(instruction: QasmQobjInstruction) -> str:
-    return f'self.q.{_get_dax_gate(instruction.name)}({",".join(getattr(instruction, "params", [])) + ",".join(map(str, instruction.qubits))})'
+    return f'self.q.{_get_dax_gate(instruction.name)}({",".join(tuple(map(str, getattr(instruction, "params", []))) + tuple(map(str, instruction.qubits)))})'
 
 
 def _commented(instruction: QasmQobjInstruction) -> str:
@@ -192,6 +192,8 @@ def _commented(instruction: QasmQobjInstruction) -> str:
 def _get_dax_gate(name: str):
     nonstandard_names = {
         'cx': 'cnot',
+        'sdg': 'sqrt_z_dag',
+        's': 'sqrt_z',
     }
     return nonstandard_names.get(name, name)
 
