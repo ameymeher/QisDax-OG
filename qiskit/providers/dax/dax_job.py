@@ -17,6 +17,7 @@
 from collections import Counter
 import os
 from tempfile import gettempdir
+from time import process_time_ns
 from uuid import uuid4
 import numpy as np
 
@@ -61,6 +62,8 @@ class DAXJob(BaseJob):
             f.write(dax_program)
 
         raw = self.get_raw_data(fname)
+        with open('profile.txt', 'a') as f:
+            f.write(f'-{process_time_ns()}\n')
         return self.get_result_obj(raw_data=raw) 
 
 

@@ -1,3 +1,4 @@
+from time import process_time_ns
 from qiskit import *
 from qiskit.providers.dax import DAX
 import numpy as np
@@ -72,7 +73,9 @@ dj_circuit = dj_algorithm(oracle_gate, n)
 
 
 backend.load_config("resources.toml")
-dax_job = execute(dj_circuit, backend, shots=30, optimization_level=0)
+with open('profile.txt', 'a') as f:
+    f.write(str(process_time_ns()))
+dax_job = execute(dj_circuit, backend, shots=512, optimization_level=0)
 res = dax_job.result()
 counts = res.get_counts()
 print(counts)

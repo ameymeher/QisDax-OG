@@ -1,4 +1,5 @@
 # initialization
+from time import process_time_ns
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -52,7 +53,9 @@ dax = DAX.get_provider() # aqt is a provider
 backend = dax.get_backend('dax_code_simulator') 
 # backend = dax.get_backend('dax_code_printer') 
 backend.load_config("resources.toml")
-dax_job = execute(bv_circuit, backend, shots=30, optimization_level=0)
+with open('profile.txt', 'a') as f:
+    f.write(str(process_time_ns()))
+dax_job = execute(bv_circuit, backend, shots=512, optimization_level=0)
 res = dax_job.result()
 counts = res.get_counts()
 print(counts)

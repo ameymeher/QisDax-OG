@@ -183,6 +183,9 @@ def _get_structured(experiment: QasmQobjExperiment, parallelized_layers: Tuple[L
         outer_parallel.append(structured)
     return outer_parallel
 
+def _get_linear_structured(experiment: QasmQobjExperiment):
+    return [[[[experiment.instructions]]]]
+
 
 def _std_replace(instruction: QasmQobjInstruction) -> str:
     return f'self.q.{_get_dax_gate(instruction.name)}({",".join(tuple(map(str, getattr(instruction, "params", []))) + tuple(map(str, instruction.qubits)))})'
@@ -218,8 +221,9 @@ def _store_creg_info(instruction: QasmQobjInstruction, creg_indices: List[int]):
 
 def _get_qasm_data(experiment: QasmQobjExperiment, parallelized_layers: Tuple[List[List[QasmQobjInstruction]]]) -> Tuple[List[str], List[int]]:
     TAB_WIDTH = getenv('TAB_WIDTH', 4)
-    outer_parallels = _get_structured(
-        experiment=experiment, parallelized_layers=parallelized_layers)
+    # outer_parallels = _get_structured(
+    #     experiment=experiment, parallelized_layers=parallelized_layers)
+    outer_parallels = _get_linear_structured(experiment)
     result = []
     to_remove_outer_parallel = []
     for outer_parallel_idx, outer_parallel in enumerate(outer_parallels):
