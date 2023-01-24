@@ -197,6 +197,8 @@ def _get_dax_gate(name: str):
         'cx': 'cnot',
         'sdg': 'sqrt_z_dag',
         's': 'sqrt_z',
+        'sx': 'sqrt_x',
+        'sxdg': 'sqrt_x_dag',
     }
     return nonstandard_names.get(name, name)
 
