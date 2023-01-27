@@ -1,4 +1,4 @@
-# Qisdax, qiskit to DAX Compiler
+# Qisdax, a Qiskit to DAX Compiler
 This document describes the project qisdax, whose goal is to compile quantum circuit code written in the high-level language qiskit into the lower level descriptive language DAX.
 
 # Installation Instructions
