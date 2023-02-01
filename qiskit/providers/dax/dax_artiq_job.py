@@ -11,8 +11,7 @@ class DAXArtiqJob(DAXJob):
 
     def run_artiq(self, file):
         parser = get_argparser()
-        args = parser.parse_args([])
-        args.file = file
+        args = parser.parse_args(['submit', file])
         env_vars = os.environ
         env_prefix = "QISDAX_ARTIQ_"
         env_qisdax_artiq = [item for item in env_vars if item.startswith(env_prefix)]
