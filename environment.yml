@@ -12,6 +12,7 @@ dependencies:
       - "git+https://gitlab.com/duke-artiq/dax@master"
       - "git+https://gitlab.com/duke-artiq/trap-dac-utils@master"
       - "git+https://gitlab.com/duke-artiq/dax-program-sim@master"
+      - python-dateutil
       - Jinja2>=2.11.3
       - numpy>=1.22.4
       - qiskit==0.36.2
