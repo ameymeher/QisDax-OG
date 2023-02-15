@@ -7,6 +7,8 @@ from artiq.frontend.artiq_client import get_argparser
 from artiq.tools import parse_arguments
 from qiskit.providers.dax.dax_job import DAXJob
 from sipyco.pc_rpc import Client
+import paramiko
+
 
 def action_submit(remote: Client, args: Namespace):
     """cloned [_action_submit](https://github.com/m-labs/artiq/blob/b50d30ba5bcf218342db545fac68685eb6ba1c7b/artiq/frontend/artiq_client.py#L129)"""
@@ -16,7 +18,7 @@ def action_submit(remote: Client, args: Namespace):
         raise ValueError("Failed to parse run arguments") from err
 
     expid = {
-        "log_level": logging.WARNING + args.quiet*10 - args.verbose*10,
+        "log_level": logging.WARNING + args.quiet * 10 - args.verbose * 10,
         "file": args.file,
         "class_name": args.class_name,
         "arguments": arguments,
@@ -33,14 +35,26 @@ def action_submit(remote: Client, args: Namespace):
 
 
 class DAXArtiqJob(DAXJob):
-    
+
     def get_raw_data(self, fname):
         raw = self.run_artiq(fname)
         return raw
 
     def run_artiq(self, file):
+        ssh_client = paramiko.SSHClient()
+        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh_client.connect(hostname='staq-host', username='username', password='password', allow_agent=False)
+        sftp = ssh_client.open_sftp()
+        remote_path = "/home/staq/staq/programs/qisdax/" + file.split('\\')[-1]
+        sftp.put(file, remote_path)
+        sftp.close()
+        ssh_client.close()
         parser = get_argparser()
-        args = parser.parse_args(['submit', file])
+        qisdax_path = "file='" + remote_path + "'"
+        args = parser.parse_args(
+            ["-s", "::1", 'submit',
+             "/home/staq/staq/repository/util/dax/program.py", qisdax_path,
+             "operation='services.microwave_operation'"])
         env_vars = os.environ
         env_prefix = "QISDAX_ARTIQ_"
         env_qisdax_artiq = [item for item in env_vars if item.startswith(env_prefix)]
