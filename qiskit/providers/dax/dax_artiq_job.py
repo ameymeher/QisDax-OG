@@ -1,6 +1,6 @@
 from argparse import Namespace
 from functools import partial
-from os import path
+from os import getcwd, path
 from tempfile import gettempdir
 from dateutil.parser import parse as parse_date
 import logging
@@ -60,8 +60,8 @@ class DAXArtiqJob(DAXJob):
 
 
     def sftp_util(self, callback):
-        config = get_config()
-        ssh_section = config["client_ssh"]
+        credentials = get_config(f'{getcwd()}/credentials.ini')
+        ssh_section = credentials["client_ssh"]
         ssh_client = SSHClient()
         ssh_client.set_missing_host_key_policy(AutoAddPolicy())
         ssh_client.connect(hostname=ssh_section["hostname"], username=ssh_section["username"], password=ssh_section["password"], allow_agent=False)
@@ -75,10 +75,10 @@ class DAXArtiqJob(DAXJob):
 
     def run_artiq(self, file):
         parser = get_argparser()
+        config = get_config()
+
         program_client = config["remote"]["remote_program_client"]
         args = parser.parse_args(['submit', file, program_client])
-
-        config = get_config()
 
         remote_path = path.join(config["remote"]["remote_dax_dir"], path.basename(file))
         self.sftp_util(callback=partial(self.upload_program, file, remote_path))
