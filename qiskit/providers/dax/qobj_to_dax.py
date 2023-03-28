@@ -57,8 +57,6 @@ def _get_parallel_layer(qbit_seq: Tuple[List[QasmQobjInstruction]], gate_resourc
                     width_checked[qbit_idx] = True
                     continue
                 instruction = seq[next_idxs[qbit_idx]]
-                if instruction in layer[qbit_idx]:
-                    continue
                 for participant in instruction.qubits:
                     if qbit_seq[participant][next_idxs[participant]] != instruction:
                         width_checked[qbit_idx] = True
