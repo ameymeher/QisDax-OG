@@ -52,12 +52,11 @@ class DAXArtiqJob(DAXJob):
         sftp.put(localpath=file, remotepath=remote_path)
 
     def retrieve_result(self, fname, result_dir, sftp: SFTPClient):
-        # for date_dir in sftp.listdir(result_dir):
         for subfolder in sftp.listdir(result_dir):
-            subfolder_path = result_dir + f"/{subfolder}"
+            subfolder_path = path.join(result_dir, subfolder)
             for filename in sftp.listdir(subfolder_path):
-                if filename == fname:
-                    filename_path = subfolder_path + f"/{filename}"
+                if path.basename(filename) == fname:
+                    filename_path = path.join(subfolder_path, filename)
                     localpath = path.join(gettempdir(), fname)
                     sftp.get(filename_path, localpath)
                     return localpath
