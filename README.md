@@ -12,6 +12,37 @@ conda activate qisdax
 3. Usage examples can be found in the `tests/` directory. Create a `.dax` file as specified [here](https://gitlab.com/duke-artiq/dax-program-sim#usage), then run:
 `python [filename]`
 
+4. Additionally, if interfacing with ARTIQ systems, create the following INI files with the specified [sections and options](https://docs.python.org/3/library/configparser.html#supported-ini-file-structure) in the working directory:
+config.ini
+```ini
+[submit]
+server = myserver
+port = 1900
+
+[submit.arguments]
+operation = services.microwave_operation
+
+[remote]
+remote_dax_dir = /a/bc
+remote_program_client = /a/bc
+remote_result_dir = /a/bc
+
+[client_ssh]
+hostname = hostname
+username = username
+password = password
+
+[misc]
+wait = 5000
+```
+credentials.ini
+```ini
+[client_ssh]
+hostname = hostname
+username = username
+password = password
+```
+
 ### DAX-Example installation
 * The dax-example project is how simulation will be brought into this qisdax compiler
 * to install the dax-example project follow the instructions on their repository [here](https://gitlab.com/duke-artiq/dax-example)

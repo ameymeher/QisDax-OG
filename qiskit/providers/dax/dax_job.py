@@ -47,7 +47,7 @@ class DAXJob(BaseJob):
         for shot_record in raw_reshaped:
             result_counter = [0 for _ in range(total_cregs)]
             for measurement, creg_idx in zip(shot_record, creg_reshaped):
-                result_counter[total_cregs - creg_idx - 1] = measurement
+                result_counter[total_cregs - creg_idx - 1] = 1 if measurement else 0
             hexes.append(hex(int(''.join(map(str, result_counter)), 2)))
         return dict(Counter(hexes))
  
