@@ -29,10 +29,10 @@ def _resource_count(layer: List[List[QasmQobjInstruction]], gate_resources: Dict
     mirrors_req = 0
     for q in layer:
         laser_max = max(
-            [0]+[gate_resources.get(inst.name, {}).get('lasers', 0) for inst in q])
+            [0]+[gate_resources.get(inst.name, {}).get('lasers', 0) for inst in q if q == min(inst.qubits)])
         lasers_req += laser_max
         mirror_max = max(
-            [0]+[gate_resources.get(inst.name, {}).get('mirrors', 0) for inst in q])
+            [0]+[gate_resources.get(inst.name, {}).get('mirrors', 0) for inst in q if q == min(inst.qubits)])
         mirrors_req += mirror_max
     return {'mirrors': mirrors_req, 'lasers': lasers_req}
 
