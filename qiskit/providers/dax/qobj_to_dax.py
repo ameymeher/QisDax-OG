@@ -27,12 +27,12 @@ def _get_qbit_indices(qbit_seq: Tuple[List[QasmQobjInstruction]], next_idxs: Lis
 def _resource_count(layer: List[List[QasmQobjInstruction]], gate_resources: Dict) -> Dict[str, int]:
     lasers_req = 0
     mirrors_req = 0
-    for q in layer:
+    for iq, q in enumerate(layer):
         laser_max = max(
-            [0]+[gate_resources.get(inst.name, {}).get('lasers', 0) for inst in q if q == min(inst.qubits)])
+            [0]+[gate_resources.get(inst.name, {}).get('lasers', 0) for inst in q if iq == min(inst.qubits)])
         lasers_req += laser_max
         mirror_max = max(
-            [0]+[gate_resources.get(inst.name, {}).get('mirrors', 0) for inst in q if q == min(inst.qubits)])
+            [0]+[gate_resources.get(inst.name, {}).get('mirrors', 0) for inst in q if iq == min(inst.qubits)])
         mirrors_req += mirror_max
     return {'mirrors': mirrors_req, 'lasers': lasers_req}
 
