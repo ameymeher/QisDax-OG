@@ -18,6 +18,8 @@ from qiskit.providers.dax.dax_sim_backend import DAXSimulator
 from qiskit.providers.providerutils import filter_backends
 from qiskit.providers import BaseProvider
 
+from qiskit.providers.dax.dax_artiq_backend import DAXArtiq
+
 
 class DAXProvider(BaseProvider):
     """Provider for backends for Duke's intermediary quantum language 'DAX' ."""
@@ -26,7 +28,7 @@ class DAXProvider(BaseProvider):
         super().__init__()        
         self.name = 'dax_provider'
         # Populate the list of AQT backends
-        self._backends = [DAXPrinter(provider=self), DAXSimulator(provider=self)]
+        self._backends = [DAXPrinter(provider=self), DAXSimulator(provider=self), DAXArtiq(provider=self)]
 
     def __str__(self):
         return "<DAXProvider(name={})>".format(self.name)
