@@ -247,30 +247,43 @@ def _get_qasm_data(experiment: QasmQobjExperiment, parallelized_layers: Tuple[Li
         del outer_parallels[outer_parallel_idx]
     
     creg_indices = []
-
+    depth = 0
+    outer_parallel_scope = len(outer_parallels) > 1
     for outer_parallel in outer_parallels:
-        result.append('with parallel:')
+        outer_parallel_depth = depth
+        if outer_parallel_scope:
+            result.append('with parallel:')
+            outer_parallel_depth += 1
+        seq_scope = len(outer_parallel) > 1
         for seq in outer_parallel:
-            result.append(TAB_WIDTH*' ' + 'with sequential:')
+            seq_depth = outer_parallel_depth
+            if seq_scope:
+                result.append(TAB_WIDTH*outer_parallel_depth*' ' + 'with sequential:')
+                seq_depth += 1
+            parallel_scope = len(seq) > 1
             for parallel in seq:
                 creg_combined = []
                 q_indices = []
-                result.append(TAB_WIDTH*2*' ' + 'with parallel:')
+                parallel_depth = seq_depth
+                if parallel_scope:
+                    result.append(TAB_WIDTH*seq_depth*' ' + 'with parallel:')
+                    parallel_depth += 1
+                inner_seq_scope = len(parallel) > 1
                 for inner_seq in parallel:
-                    result.append(TAB_WIDTH*3*' ' + 'with sequential:')
+                    inner_seq_depth = parallel_depth
+                    if inner_seq_scope:
+                        result.append(TAB_WIDTH*parallel_depth*' ' + 'with sequential:')
+                        inner_seq_depth += 1
                     for inst in inner_seq:
                         for inst_line in _get_instr_str(instruction=inst):
-                            result.append(TAB_WIDTH*4*' ' + inst_line)
+                            result.append(TAB_WIDTH*inner_seq_depth*' ' + inst_line)
                         if inst.name == 'measure':
                             q_indices.append(inst.qubits[0])
                             creg_combined = _store_creg_info(inst, creg_indices=creg_combined)
-                    result.append(TAB_WIDTH*4*' ' + 'pass')
-                result.append(TAB_WIDTH*3*' ' + 'pass')
+                    result.append(TAB_WIDTH*inner_seq_depth*' ' + 'pass')
                 if creg_combined:
                     creg_indices.append(creg_combined)
-                    result.append(TAB_WIDTH*2*' ' + f'self.q.store_measurements({q_indices})')
-            result.append(TAB_WIDTH*2*' ' + 'pass')
-        result.append(TAB_WIDTH*' ' + 'pass')
+                    result.append(TAB_WIDTH*seq_depth*' ' + f'self.q.store_measurements({q_indices})')
     return result, creg_indices
 
 
