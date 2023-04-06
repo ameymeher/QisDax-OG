@@ -33,7 +33,11 @@ class QisDaxProgram(DaxProgram, Experiment):
             for _ in range(self._num_iterations):
                 self.core.reset()
                 self.q.prep_0_all()
+                t0 = self.core.get_rtio_counter_mu()
 
                 {% for inst in instructions_list -%}
                 {{inst}}
                 {% endfor %}
+
+                t1 = self.core.get_rtio_counter_mu()
+                self.set_dataset("dt", self.core.mu_to_seconds(t1 - t0))
