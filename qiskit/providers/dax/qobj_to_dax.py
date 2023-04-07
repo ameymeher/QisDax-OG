@@ -248,29 +248,29 @@ def _get_qasm_data(experiment: QasmQobjExperiment, parallelized_layers: Tuple[Li
     
     creg_indices = []
     depth = 0
-    outer_parallel_scope = len(outer_parallels) > 1
     for outer_parallel in outer_parallels:
         outer_parallel_depth = depth
+        outer_parallel_scope = len(outer_parallel) > 1
         if outer_parallel_scope:
             result.append('with parallel:')
             outer_parallel_depth += 1
-        seq_scope = len(outer_parallel) > 1
         for seq in outer_parallel:
             seq_depth = outer_parallel_depth
+            seq_scope = len(seq) > 1 or any(inst.name == 'measure' for parallel in seq for inner_seq in parallel for inst in inner_seq)
             if seq_scope:
                 result.append(TAB_WIDTH*outer_parallel_depth*' ' + 'with sequential:')
                 seq_depth += 1
-            parallel_scope = len(seq) > 1
             for parallel in seq:
                 creg_combined = []
                 q_indices = []
                 parallel_depth = seq_depth
+                parallel_scope = len(parallel) > 1
                 if parallel_scope:
                     result.append(TAB_WIDTH*seq_depth*' ' + 'with parallel:')
                     parallel_depth += 1
-                inner_seq_scope = len(parallel) > 1
                 for inner_seq in parallel:
                     inner_seq_depth = parallel_depth
+                    inner_seq_scope = len(inner_seq) > 1
                     if inner_seq_scope:
                         result.append(TAB_WIDTH*parallel_depth*' ' + 'with sequential:')
                         inner_seq_depth += 1
