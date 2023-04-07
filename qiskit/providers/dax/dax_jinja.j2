@@ -23,9 +23,12 @@ class QisDaxProgram(DaxProgram, Experiment):
 
     @kernel
     def _run(self):
+        t0 = self.core.get_rtio_counter_mu()
         self._qiskit_kernel()
 
         self.core.wait_until_mu(now_mu())
+        t1 = self.core.get_rtio_counter_mu()
+        self.set_dataset("dt", self.core.mu_to_seconds(t1 - t0))
 
     @kernel
     def _qiskit_kernel(self):
