@@ -15,4 +15,5 @@
 - Checkout branch `profile`
 - Run `python3 consolidate.py` to obtain `qisdax.json`
 - Move `qisdax.json` to the directory containing the notebook
+- Activate any environment with the `numpy`, `scipy` and `pandas` packages
 - Run the notebook
