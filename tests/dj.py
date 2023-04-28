@@ -4,8 +4,16 @@ from qiskit.providers.dax import DAX
 import numpy as np
 dax = DAX.get_provider() # aqt is a provider
 
-backend = dax.get_backend('dax_code_simulator') 
-# backend = dax.get_backend('dax_code_printer') 
+# backend = dax.get_backend('dax_code_simulator') 
+backend = dax.get_backend('dax_code_printer') 
+
+def cx_it(q_c, i, j):
+    import math
+    q_c.ry(math.pi /2, i)
+    q_c.rxx(math.pi / 2, i, j)
+    q_c.ry(-math.pi / 2, i)
+    q_c.rx(-math.pi / 2, j)
+    q_c.rz(-math.pi / 2, i)
 
 def dj_oracle(case, n):
     # We need to make a QuantumCircuit object to return
@@ -29,7 +37,8 @@ def dj_oracle(case, n):
         # Do the controlled-NOT gates for each qubit, using the output qubit 
         # as the target:
         for qubit in range(n):
-            oracle_qc.cx(qubit, n)
+            # oracle_qc.cx(qubit, n)
+            cx_it(oracle_qc, qubit, n)
         # Next, place the final X-gates
         for qubit in range(len(b_str)):
             if b_str[qubit] == '1':

@@ -2,6 +2,14 @@ from time import process_time_ns
 from qiskit import QuantumCircuit, execute
 from qiskit.providers.dax import DAX
 
+def cx_it(q_c, i, j):
+    import math
+    q_c.ry(math.pi /2, i)
+    q_c.rxx(math.pi / 2, i, j)
+    q_c.ry(-math.pi / 2, i)
+    q_c.rx(-math.pi / 2, j)
+    q_c.rz(-math.pi / 2, i)
+
 def simon_oracle(b):
     """returns a Simon oracle for bitstring b"""
     b = b[::-1] # reverse b for easy iteration
@@ -9,14 +17,16 @@ def simon_oracle(b):
     qc = QuantumCircuit(n*2)
     # Do copy; |x>|0> -> |x>|x>
     for q in range(n):
-        qc.cx(q, q+n)
+        # qc.cx(q, q+n)
+        cx_it(qc, q, q+n)
     if '1' not in b: 
         return qc  # 1:1 mapping, so just exit
     i = b.find('1') # index of first non-zero bit in b
     # Do |x> -> |s.x> on condition that q_i is 1
     for q in range(n):
         if b[q] == '1':
-            qc.cx(i, (q)+n)
+            # qc.cx(i, (q)+n)
+            cx_it(qc, i, (q)+n)
     return qc 
 
 
@@ -52,8 +62,8 @@ def bdotz(b, z):
 
 dax = DAX.get_provider() # aqt is a provider
 
-backend = dax.get_backend('dax_code_simulator') 
-# backend = dax.get_backend('dax_code_printer') 
+# backend = dax.get_backend('dax_code_simulator') 
+backend = dax.get_backend('dax_code_printer') 
 backend.load_config("resources.toml")
 with open('profile.txt', 'a') as f:
     f.write(str(process_time_ns()))

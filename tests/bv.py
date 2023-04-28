@@ -11,6 +11,14 @@ from qiskit.providers.dax import DAX
 n = 3 # number of qubits used to represent s
 s = '011'   # the hidden binary string
 
+def cx_it(q_c, i, j):
+    import math
+    q_c.ry(math.pi /2, i)
+    q_c.rxx(math.pi / 2, i, j)
+    q_c.ry(-math.pi / 2, i)
+    q_c.rx(-math.pi / 2, j)
+    q_c.rz(-math.pi / 2, i)
+
 # We need a circuit with n qubits, plus one auxiliary qubit
 # Also need n classical bits to write the output to
 bv_circuit = QuantumCircuit(n+1, n)
@@ -32,7 +40,8 @@ for q in range(n):
     if s[q] == '0':
         bv_circuit.i(q)
     else:
-        bv_circuit.cx(q, n)
+        # bv_circuit.cx_it(q, n)
+        cx_it(bv_circuit, q, n)
         
 # Apply barrier 
 bv_circuit.barrier()
@@ -50,8 +59,8 @@ for i in range(n):
 
 dax = DAX.get_provider() # aqt is a provider
 
-backend = dax.get_backend('dax_code_simulator') 
-# backend = dax.get_backend('dax_code_printer') 
+# backend = dax.get_backend('dax_code_simulator') 
+backend = dax.get_backend('dax_code_printer') 
 backend.load_config("resources.toml")
 with open('profile.txt', 'a') as f:
     f.write(str(process_time_ns()))
