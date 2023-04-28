@@ -1,4 +1,4 @@
-name: qisdax
+name: qd13
 channels:
   - https://conda.m-labs.hk/artiq-legacy
   - defaults
@@ -9,15 +9,4 @@ dependencies:
   - pip
   - git
   - pip:
-      - "git+https://gitlab.com/duke-artiq/dax@master"
-      - "git+https://gitlab.com/duke-artiq/trap-dac-utils@master"
-      - "git+https://gitlab.com/duke-artiq/dax-program-sim@master"
-      - python-dateutil
-      - h5py
-      - "git+https://gitlab.com/duke-artiq/h5-artiq@master"
-      - Jinja2>=2.11.3
-      - numpy>=1.22.4
-      - paramiko
-      - qiskit==0.36.2
-      - toml>=0.10.2
-      - -e ./
+      - setuptools==58.3.0
