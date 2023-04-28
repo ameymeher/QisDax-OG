@@ -10,7 +10,7 @@ for algo in algos:
     with open(fname, 'r', encoding="utf-8") as f:
         lines = f.readlines()
         for line in lines:
-            if len(line.strip() > 0):
+            if len(line.strip()) > 0:
                 store.append(abs(eval(line)))
     jdict[algo]['parallel_rt'] = store
     
@@ -19,7 +19,7 @@ for algo in algos:
     with open(fname, 'r', encoding="utf-8") as f:
         lines = f.readlines()
         for line in lines:
-            if len(line.strip() > 0):
+            if len(line.strip()) > 0:
                 store.append(abs(eval(line)))
     jdict[algo]['linear_rt'] = store
 
@@ -28,7 +28,7 @@ for algo in algos:
     with open(fname, 'r', encoding="utf-8") as f:
         lines = f.readlines()
         for line in lines:
-            if len(line.strip() > 0):
+            if len(line.strip()) > 0:
                 a,b = line.split('-')
                 if a == 'S':
                     jdict[algo]['cryo_linear_rt'] = int(b.strip())
@@ -41,7 +41,7 @@ for algo in algos:
     with open(fname, 'r', encoding="utf-8") as f:
         lines = f.readlines()
         for line in lines:
-            if len(line.strip() > 0):
+            if len(line.strip()) > 0:
                 a,b = line.split('-')
                 if a == 'S':
                     jdict[algo]['aria_linear_rt'] = int(b.strip())
