@@ -1,0 +1,18 @@
+- Activate conda environment after install
+- Run `cd tests`
+- Checkout branch `cryo-p`
+- Update pyenv variable in `automate.sh` and `mw-automate.sh`
+- Run `./automate.sh && ./mw-automate.sh`
+- Checkout branch `cryo-s`
+- Update pyenv variable in `automate.sh` and `mw-automate.sh`
+- Run `./automate.sh && ./mw-automate.sh`
+- Checkout branch `aria-p`
+- Update pyenv variable in `automate.sh` and `mw-automate.sh`
+- Run `./automate.sh && ./mw-automate.sh`
+- Checkout branch `aria-s`
+- Update pyenv variable in `automate.sh` and `mw-automate.sh`
+- Run `./automate.sh && ./mw-automate.sh`
+- Checkout branch `profile`
+- Run `python3 consolidate.py` to obtain `qisdax.json`
+- Move `qisdax.json` to the directory containing the notebook
+- Run the notebook
