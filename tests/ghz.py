@@ -29,8 +29,8 @@ circ.measure_all()
 
 dax = DAX.get_provider() # aqt is a provider
 
-# backend = dax.get_backend('dax_code_simulator') 
-backend = dax.get_backend('dax_code_printer') 
+backend = dax.get_backend('dax_code_simulator') 
+# backend = dax.get_backend('dax_code_printer') 
 backend.load_config("resources.toml")
 with open('profile.txt', 'a') as f:
     f.write(str(process_time_ns()))
