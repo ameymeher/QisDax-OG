@@ -1,18 +1,18 @@
 - Activate conda environment after install
 - Run `cd tests`
-- Checkout branch `cryo-p`
+- git checkout `cryo-p`
 - Update pyenv variable in `automate.sh` and `mw-automate.sh`
 - Run `./automate.sh && ./mw-automate.sh`
-- Checkout branch `cryo-s`
+- git checkout `cryo-s`
 - Update pyenv variable in `automate.sh` and `mw-automate.sh`
 - Run `./automate.sh && ./mw-automate.sh`
-- Checkout branch `aria-p`
+- git checkout `aria-p`
 - Update pyenv variable in `automate.sh` and `mw-automate.sh`
 - Run `./automate.sh && ./mw-automate.sh`
-- Checkout branch `aria-s`
+- git checkout `aria-s`
 - Update pyenv variable in `automate.sh` and `mw-automate.sh`
 - Run `./automate.sh && ./mw-automate.sh`
-- Checkout branch `profile`
+- git checkout `profile`
 - Run `python3 consolidate.py` to obtain `qisdax.json`
 - Move `qisdax.json` to the directory containing the notebook
 - Activate any environment with the `numpy`, `scipy` and `pandas` packages
