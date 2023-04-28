@@ -1,4 +1,4 @@
-name: qd13
+name: qisdax
 channels:
   - https://conda.m-labs.hk/artiq-legacy
   - defaults
