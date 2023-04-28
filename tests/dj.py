@@ -4,8 +4,8 @@ from qiskit.providers.dax import DAX
 import numpy as np
 dax = DAX.get_provider() # aqt is a provider
 
-# backend = dax.get_backend('dax_code_simulator') 
-backend = dax.get_backend('dax_code_printer') 
+backend = dax.get_backend('dax_code_simulator') 
+# backend = dax.get_backend('dax_code_printer') 
 
 def cx_it(q_c, i, j):
     import math
