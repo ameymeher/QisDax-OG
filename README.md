@@ -8,6 +8,7 @@ This document describes the project qisdax, whose goal is to compile quantum cir
 ```
 conda env create -f environment.yml
 conda activate qisdax
+pip3 install -r requirements.txt
 ```
 3. Usage examples can be found in the `tests/` directory. Create a `.dax` file as specified [here](https://gitlab.com/duke-artiq/dax-program-sim#usage), then run:
 `python [filename]`
