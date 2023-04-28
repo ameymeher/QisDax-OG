@@ -1,7 +1,7 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 count=16
-pyenv=`which python`
+pyenv=$(which python3)
 
 for i in $(seq $count); do
     $pyenv bv.py

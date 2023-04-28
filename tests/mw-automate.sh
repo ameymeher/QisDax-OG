@@ -1,6 +1,6 @@
 #!/bin/bash
 cd "$(dirname "$0")"
-pyenv=`which python`
+pyenv=$(which python3)
 
 $pyenv bv.py
 mv maxwidth.txt bv.cryo.maxwidth.txt
