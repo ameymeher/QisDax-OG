@@ -223,9 +223,9 @@ def _store_creg_info(instruction: QasmQobjInstruction, creg_indices: List[int]):
 
 def _get_qasm_data(experiment: QasmQobjExperiment, parallelized_layers: Tuple[List[List[QasmQobjInstruction]]]) -> Tuple[List[str], List[int]]:
     TAB_WIDTH = getenv('TAB_WIDTH', 4)
-    # outer_parallels = _get_structured(
-    #     experiment=experiment, parallelized_layers=parallelized_layers)
-    outer_parallels = _get_linear_structured(experiment)
+    outer_parallels = _get_structured(
+        experiment=experiment, parallelized_layers=parallelized_layers)
+    # outer_parallels = _get_linear_structured(experiment)
     result = []
     to_remove_outer_parallel = []
     for outer_parallel_idx, outer_parallel in enumerate(outer_parallels):
