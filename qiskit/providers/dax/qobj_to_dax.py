@@ -295,7 +295,7 @@ def _get_qasm_data(experiment: QasmQobjExperiment, parallelized_layers: Tuple[Li
 
 def _experiment_to_seq(experiment: QasmQobjExperiment, gate_resources: Dict) -> Tuple[List[str], List[int]]:
     with open('maxwidth.txt', 'w') as f:
-        f.write()
+        f.write('')
     parallelized_layers = _get_parallelized_layers(
         experiment=experiment, gate_resources=gate_resources)
     qasm_strings, creg_indices = _get_qasm_data(experiment=experiment,
