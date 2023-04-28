@@ -1,5 +1,5 @@
 dax @ git+https://gitlab.com/duke-artiq/dax@master
-trap-dac-utils @ git+git+https://gitlab.com/duke-artiq/trap-dac-utils@master
+trap-dac-utils @ git+https://gitlab.com/duke-artiq/trap-dac-utils@master
 dax-program-sim @ git+https://gitlab.com/duke-artiq/dax-program-sim@master
 python-dateutil
 h5py
