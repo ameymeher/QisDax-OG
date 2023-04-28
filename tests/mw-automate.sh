@@ -1,6 +1,6 @@
 #!/bin/bash
 cd "$(dirname "$0")"
-pyenv='/home/kjbadrik/anaconda3/envs/qisdax/bin/python3'
+pyenv=$(which python3)
 
 $pyenv bv.py
 mv maxwidth.txt bv.cryo.maxwidth.txt
