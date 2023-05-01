@@ -27,7 +27,5 @@ git checkout cryo-p
 git checkout profile
 python3 consolidate.py
 
-cp qisdax.json ../../qisdax.json
-cd ../..
 # Activate any environment with the `numpy`, `scipy` and `pandas` packages
 jupyter run qisdax_svp_rt.ipynb
