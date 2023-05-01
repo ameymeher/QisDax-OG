@@ -95,6 +95,8 @@ def _get_parallel_layer(qbit_seq: Tuple[List[QasmQobjInstruction]], gate_resourc
                             width_checked[participant] = True
         with open('maxwidth.txt', 'a') as f:
             f.write(f'W-{max_layer_width}\n')
+        with open('maxwidth.txt', 'a') as f:
+            f.write(f'M-{max(len(seq) for seq in layer)}\n')
         yield layer
 
 
@@ -303,6 +305,7 @@ def _experiment_to_seq(experiment: QasmQobjExperiment, gate_resources: Dict) -> 
     with open('maxwidth.txt', 'a') as f:
         w = _get_width(experiment.instructions, gate_resources=gate_resources)
         f.write(f'S-{w}\n')
+        f.write(f'L-{max(len(experiment.instructions))}\n')
     return qasm_strings, creg_indices
 
 
