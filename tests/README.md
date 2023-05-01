@@ -1,19 +1,5 @@
-- Activate conda environment after install
-- Run `cd tests`
-- Checkout branch `cryo-p`
-- Update pyenv variable in `automate.sh` and `mw-automate.sh`
-- Run `./automate.sh && ./mw-automate.sh`
-- Checkout branch `cryo-s`
-- Update pyenv variable in `automate.sh` and `mw-automate.sh`
-- Run `./automate.sh && ./mw-automate.sh`
-- Checkout branch `aria-p`
-- Update pyenv variable in `automate.sh` and `mw-automate.sh`
-- Run `./automate.sh && ./mw-automate.sh`
-- Checkout branch `aria-s`
-- Update pyenv variable in `automate.sh` and `mw-automate.sh`
-- Run `./automate.sh && ./mw-automate.sh`
-- Checkout branch `profile`
-- Run `python3 consolidate.py` to obtain `qisdax.json`
-- Move `qisdax.json` to the directory containing the notebook
-- Activate any environment with the `numpy`, `scipy` and `pandas` packages
-- Run the notebook
+## To obtain benchmarks on QisDAX, use the script `stats.sh` from this directory
+If you're reading this in your clone in the profile branch in the tests/ directory, comment lines 1 ~ 11
+```
+./stats.sh
+```
