@@ -12,10 +12,10 @@ git checkout profile
 
 cd tests
 
-git checkout aria-p
+git checkout aria-s
 ./automate.sh && ./mw-automate.sh
 
-git checkout aria-s
+git checkout aria-p
 ./automate.sh && ./mw-automate.sh
 
 git checkout cryo-s
