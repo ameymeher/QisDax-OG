@@ -32,9 +32,20 @@ for algo in algos:
                 a,b = line.split('-')
                 if a == 'S':
                     jdict[algo]['cryo_linear_rt'] = int(b.strip())
-                else:
+                elif a == 'W':
                     store.append(int(b.strip()))
     jdict[algo]['cryo_parallel_rt'] = store
+
+    with open(fname, 'r', encoding="utf-8") as f:
+        lines = f.readlines()
+        for line in lines:
+            if len(line.strip()) > 0:
+                a,b = line.split('-')
+                if a == 'L':
+                    jdict[algo]['linear'] = int(b.strip())
+                elif a == 'M':
+                    store.append(int(b.strip()))
+    jdict[algo]['parallel'] = store
 
     fname = f'{algo}.aria.maxwidth.txt'
     store = []
@@ -45,7 +56,7 @@ for algo in algos:
                 a,b = line.split('-')
                 if a == 'S':
                     jdict[algo]['aria_linear_rt'] = int(b.strip())
-                else:
+                elif a == 'W':
                     store.append(int(b.strip()))
     jdict[algo]['aria_parallel_rt'] = store
 
