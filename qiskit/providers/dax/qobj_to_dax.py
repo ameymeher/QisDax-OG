@@ -305,7 +305,7 @@ def _experiment_to_seq(experiment: QasmQobjExperiment, gate_resources: Dict) -> 
     with open('maxwidth.txt', 'a') as f:
         w = _get_width(experiment.instructions, gate_resources=gate_resources)
         f.write(f'S-{w}\n')
-        f.write(f'L-{max(len(experiment.instructions))}\n')
+        f.write(f'L-{len(experiment.instructions)}\n')
     return qasm_strings, creg_indices
 
 
