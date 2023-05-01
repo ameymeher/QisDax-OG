@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 git clone git@gitlab.com:fmuelle/qisdax.git
 
 cd qisdax
