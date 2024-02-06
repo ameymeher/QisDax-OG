@@ -1,7 +1,7 @@
 from qiskit.providers.dax.dax_job import DAXJob
 
-from dax_program_sim.frontend.dax_prog_sim import config_parser, backend_config_parser
-from dax_program_sim.frontend.runtime import DaxProgramSimFrontendError, run, BACKENDS_MAP
+from dax_program_sim.frontend.runtime import DaxProgramSimFrontendError, run, BACKENDS_MAP, config_parser, backend_config_parser
+
 
 class DAXSimJob(DAXJob):
     
@@ -23,5 +23,12 @@ class DAXSimJob(DAXJob):
         # Add file and class into argument dictionary
         arguments['file'] = file
 
+        """
+        arguments['num_qubits'] = num_qubits
+        arguments['backend'] = backend
+        arguments['backend_config'] = backend_configs
+        """
+
         # Get managers and enable simulation with DAX.sim. Add the arguments to the dataset manager to be picked up later
-        return run(artiq_arguments=arguments, num_qubits=num_qubits, backend=backend, backend_config=backend_configs)
+        return run(artiq_arguments=arguments)
+        #return run(artiq_arguments=arguments, num_qubits=num_qubits, backend=backend, backend_config=backend_configs)
