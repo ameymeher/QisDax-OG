@@ -23,12 +23,9 @@ class DAXSimJob(DAXJob):
         # Add file and class into argument dictionary
         arguments['file'] = file
 
-        """
         arguments['num_qubits'] = num_qubits
         arguments['backend'] = backend
         arguments['backend_config'] = backend_configs
-        """
 
         # Get managers and enable simulation with DAX.sim. Add the arguments to the dataset manager to be picked up later
         return run(artiq_arguments=arguments)
-        #return run(artiq_arguments=arguments, num_qubits=num_qubits, backend=backend, backend_config=backend_configs)
