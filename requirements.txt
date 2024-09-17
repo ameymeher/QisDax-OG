@@ -1,3 +1,6 @@
+pygit2==1.14.1
+sipyco @ git+https://github.com/m-labs/sipyco.git
+artiq @ git+https://github.com/m-labs/artiq.git
 dax @ git+https://gitlab.com/duke-artiq/dax@master
 trap-dac-utils @ git+https://gitlab.com/duke-artiq/trap-dac-utils@master
 dax-program-sim @ git+https://gitlab.com/duke-artiq/dax-program-sim@master

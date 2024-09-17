@@ -4,8 +4,7 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - python=3.8
-  - artiq
+  - python=3.9
   - pip
   - git
   - pip:
